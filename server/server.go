@@ -2,9 +2,14 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -14,6 +19,21 @@ import (
 type Server struct {
 	http, https *http.Server
 	mux         *http.ServeMux
+}
+
+func buildRedirect(httpsAddr string, req *http.Request) string {
+	var host string
+	if strings.Contains(req.Host, ":") {
+		host, _, _ = net.SplitHostPort(req.Host)
+	} else {
+		host = req.Host
+	}
+
+	if strings.Contains(httpsAddr, ":") {
+		_, port, _ := net.SplitHostPort(httpsAddr)
+		return "https://" + host + ":" + port + req.URL.String()
+	}
+	return "https://" + host + req.URL.String()
 }
 
 // Create creates a new server
@@ -28,7 +48,8 @@ func Create(httpAddr, httpsAddr string) *Server {
 		WriteTimeout: 5 * time.Second,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			w.Header().Set("Connection", "close")
-			url := "https://" + req.Host + req.URL.String()
+			url := buildRedirect(httpsAddr, req)
+			log.Printf("Redirecting to %s", url)
 			http.Redirect(w, req, url, http.StatusMovedPermanently)
 		}),
 	}
@@ -72,11 +93,42 @@ func Create(httpAddr, httpsAddr string) *Server {
 // Handle a http request to a path
 func (s *Server) Handle(path string, h http.Handler) {
 	s.mux.Handle(path, h)
-
 }
 
 // Start starts a server
 func (s *Server) Start() {
-	go func() { log.Fatal(s.http.ListenAndServe()) }()
-	log.Fatal(s.https.ListenAndServeTLS("", ""))
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+
+		// Wait for signals
+		<-sigint
+
+		log.Printf("Shutting down")
+		if err := s.http.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+		if err := s.https.Shutdown(context.Background()); err != nil {
+			log.Printf("HTTPS server Shutdown: %v", err)
+		}
+		close(idleConnsClosed)
+	}()
+
+	go func() {
+		log.Printf("Listining on %s", s.http.Addr)
+		if err := s.http.ListenAndServe(); err != http.ErrServerClosed {
+			log.Printf("HTTP server ListenAndServe: %v", err)
+		}
+	}()
+
+	go func() {
+		log.Printf("Listening on %s", s.https.Addr)
+		if err := s.https.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
+			log.Printf("HTTPs server ListenAndServeTLS: %v", err)
+		}
+	}()
+
+	// Wait for shutdown
+	<-idleConnsClosed
 }

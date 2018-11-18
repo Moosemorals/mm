@@ -1,0 +1,4 @@
+github.com/moosemorals/mm/server v0.0.0-20181118210418-d102a1166153 h1:Q17NgvIf7WvdrNPF2u+yFMW1N0LlJPHW2NZkQfcutN0=
+github.com/moosemorals/mm/server v0.0.0-20181118210418-d102a1166153/go.mod h1:Nx8UkAb92GGluLQT81DemwMz6qx/k2ORzoAvO8Gw2T4=
+golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869 h1:kkXA53yGe04D0adEYJwEVQjeBppL01Exg+fnMjfUraU=
+golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
