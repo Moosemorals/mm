@@ -1,19 +1,37 @@
 // Run the webserver
 package main
 
-import "github.com/moosemorals/mm/server"
-import "net/http"
+import (
+	"flag"
+	"log"
+	"net/http"
 
-type hello struct{}
+	"github.com/moosemorals/mm/server"
+)
 
-func (h *hello) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	res.Header().Add("Content-Type", "text/plain")
-	res.WriteHeader(200)
-	res.Write([]byte("Hello, world!\n"))
+func logRequest(h http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		h.ServeHTTP(w, req)
+		log.Printf("%s %s %s", req.RemoteAddr, req.Method, req.RequestURI)
+	}
 }
 
 func main() {
-	s := server.Create(":8081", ":8443")
-	s.Handle("/", &hello{})
+	opts := server.Options{}
+
+	wwwroot := flag.String("wwwroot", ".", "Directory to serve static files from")
+	debug := flag.Bool("debug", false, "Use debug certificates")
+
+	flag.Parse()
+
+	if *debug {
+		log.Println("Debug enabled")
+		opts.SetDebug()
+	}
+
+	opts.AddAddr(":8081", ":8443")
+
+	s := server.Create(opts)
+	s.Handle("/", logRequest(http.FileServer(http.Dir(*wwwroot))))
 	s.Start()
 }

@@ -17,8 +17,9 @@ import (
 
 // Server is a wrapper around net.httpd
 type Server struct {
-	http, https *http.Server
-	mux         *http.ServeMux
+	Options
+	servers []*http.Server
+	mux     *http.ServeMux
 }
 
 func buildRedirect(httpsAddr string, req *http.Request) string {
@@ -37,32 +38,26 @@ func buildRedirect(httpsAddr string, req *http.Request) string {
 }
 
 // Create creates a new server
-func Create(httpAddr, httpsAddr string) *Server {
+func Create(opts Options) *Server {
 	s := &Server{
-		mux: http.NewServeMux(),
+		Options: opts,
+		mux:     http.NewServeMux(),
 	}
 
-	s.http = &http.Server{
-		Addr:         httpAddr,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			w.Header().Set("Connection", "close")
-			url := buildRedirect(httpsAddr, req)
-			log.Printf("Redirecting to %s", url)
-			http.Redirect(w, req, url, http.StatusMovedPermanently)
-		}),
+	for i, a := range s.httpAddr {
+		s.servers = append(s.servers, &http.Server{
+			Addr:         a,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				w.Header().Set("Connection", "close")
+				url := buildRedirect(s.httpsAddr[i], req)
+				log.Printf("Redirecting to %s", url)
+				http.Redirect(w, req, url, http.StatusMovedPermanently)
+			}),
+		})
 	}
-
-	m := &autocert.Manager{
-		Cache:      autocert.DirCache("~/moosemorals.com/tls"),
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist("moosemorals.com", "www.moosemorals.com"),
-	}
-
 	tlsConfig := &tls.Config{
-		GetCertificate:           m.GetCertificate,
-		NextProtos:               m.TLSConfig().NextProtos,
 		PreferServerCipherSuites: true,
 		CurvePreferences: []tls.CurveID{
 			tls.CurveP256,
@@ -78,14 +73,25 @@ func Create(httpAddr, httpsAddr string) *Server {
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 		},
 	}
+	if !s.debug {
+		m := &autocert.Manager{
+			Cache:      autocert.DirCache("~/moosemorals.com/tls"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("moosemorals.com", "www.moosemorals.com"),
+		}
+		tlsConfig.GetCertificate = m.GetCertificate
+		tlsConfig.NextProtos = m.TLSConfig().NextProtos
+	}
 
-	s.https = &http.Server{
-		Addr:         httpsAddr,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		TLSConfig:    tlsConfig,
-		Handler:      s.mux,
+	for _, a := range s.httpsAddr {
+		s.servers = append(s.servers, &http.Server{
+			Addr:         a,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  120 * time.Second,
+			TLSConfig:    tlsConfig,
+			Handler:      s.mux,
+		})
 	}
 	return s
 }
@@ -93,6 +99,13 @@ func Create(httpAddr, httpsAddr string) *Server {
 // Handle a http request to a path
 func (s *Server) Handle(path string, h http.Handler) {
 	s.mux.Handle(path, h)
+}
+
+func getProto(h *http.Server) string {
+	if h.TLSConfig != nil {
+		return "HTTPS"
+	}
+	return "HTTP"
 }
 
 // Start starts a server
@@ -106,29 +119,37 @@ func (s *Server) Start() {
 		<-sigint
 
 		log.Printf("Shutting down")
-		if err := s.http.Shutdown(context.Background()); err != nil {
-			log.Printf("HTTP server Shutdown: %v", err)
-		}
-		if err := s.https.Shutdown(context.Background()); err != nil {
-			log.Printf("HTTPS server Shutdown: %v", err)
+		for _, server := range s.servers {
+			if err := server.Shutdown(context.Background()); err != nil {
+				log.Printf("%s server %s shutdown error: %v", getProto(server), server.Addr, err)
+			}
 		}
 		close(idleConnsClosed)
 	}()
 
-	go func() {
-		log.Printf("Listining on %s", s.http.Addr)
-		if err := s.http.ListenAndServe(); err != http.ErrServerClosed {
-			log.Printf("HTTP server ListenAndServe: %v", err)
-		}
-	}()
+	for _, x := range s.servers {
+		go func(server *http.Server) {
+			proto := getProto(server)
+			if proto == "HTTP" {
+				log.Printf("HTTP server listening on %s", server.Addr)
+				if err := server.ListenAndServe(); err != http.ErrServerClosed {
+					log.Printf("HTTP server %s error ListenAndServe: %v", server.Addr, err)
+				}
+			} else {
+				log.Printf("HTTPS server listening on %s", server.Addr)
+				var err error
+				if !s.debug {
+					err= server.ListenAndServeTLS("", "")
+				} else {
+					err = server.ListenAndServeTLS("cert.pem", "key.pem")
+				}
+				if err != http.ErrServerClosed {
+					log.Printf("HTTPS server %s error ListenAndServeTLS: %v", server.Addr, err)
+				}
 
-	go func() {
-		log.Printf("Listening on %s", s.https.Addr)
-		if err := s.https.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
-			log.Printf("HTTPs server ListenAndServeTLS: %v", err)
-		}
-	}()
-
+			}
+		}(x)
+	}
 	// Wait for shutdown
 	<-idleConnsClosed
 }
