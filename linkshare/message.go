@@ -9,3 +9,11 @@ type Message struct {
 	// When is when the link was sent (ISO date)
 	When string
 }
+
+// Reply sends a message to a client
+type Reply func(Message)
+
+// MessageHandler deals with messages from remote clients
+type MessageHandler interface {
+	OnMessage(*Hub, Message, Reply)
+}

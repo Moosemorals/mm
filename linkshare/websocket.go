@@ -60,7 +60,7 @@ func (c *client) read() {
 			}
 			break
 		}
-		c.hub.in <- msg
+		c.hub.in <- clientMessage{c, msg}
 	}
 }
 
@@ -100,10 +100,16 @@ func (c *client) write() {
 	}
 }
 
+type clientMessage struct {
+	c *client
+	m Message
+}
+
 // Hub manages clients and broadcasts messages
 type Hub struct {
 	clients    map[*client]bool
-	in         chan Message
+	handlers   map[MessageHandler]bool
+	in         chan clientMessage
 	register   chan *client
 	unregister chan *client
 	shutdown   chan int
@@ -113,7 +119,8 @@ type Hub struct {
 func NewHub() *Hub {
 	h := &Hub{
 		clients:    make(map[*client]bool),
-		in:         make(chan Message),
+		handlers:   make(map[MessageHandler]bool),
+		in:         make(chan clientMessage),
 		register:   make(chan *client),
 		unregister: make(chan *client),
 		shutdown:   make(chan int),
@@ -122,36 +129,25 @@ func NewHub() *Hub {
 	return h
 }
 
-func (h *Hub) closeclient(c *client) {
-	close(c.out)
-	delete(h.clients, c)
-}
-
-func (h *Hub) run() {
-	for {
+// Broadcast a message to all listening clients
+func (h *Hub) Broadcast(m Message) {
+	for client := range h.clients {
 		select {
-		case client := <-h.register:
-			h.clients[client] = true
-		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
-				h.closeclient(client)
-			}
-		case msg := <-h.in:
-			for client := range h.clients {
-				select {
-				case client.out <- msg:
-				default:
-					h.closeclient(client)
-				}
-			}
-		case <-h.shutdown:
-			log.Printf("Closing %d websockets", len(h.clients))
-			for client := range h.clients {
-				h.closeclient(client)
-			}
-			return
+		case client.out <- m:
+		default:
+			h.closeclient(client)
 		}
 	}
+}
+
+// RegisterHandler to handle messages
+func (h *Hub) RegisterHandler(mh MessageHandler) {
+	h.handlers[mh] = true
+}
+
+// UnregisterHandler to stop handling messages
+func (h *Hub) UnregisterHandler(mh MessageHandler) {
+	delete(h.handlers, mh)
 }
 
 // Shutdown client websockets cleanly
@@ -177,4 +173,38 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Start client goroutines
 	go client.write()
 	go client.read()
+}
+
+// Helper function, closes a client connection
+func (h *Hub) closeclient(c *client) {
+	close(c.out)
+	delete(h.clients, c)
+}
+
+// Main loop. Wait for messages from clients,
+// hand them off to handlers, and deal with
+// replies
+func (h *Hub) run() {
+	for {
+		select {
+		case client := <-h.register:
+			h.clients[client] = true
+		case client := <-h.unregister:
+			if _, ok := h.clients[client]; ok {
+				h.closeclient(client)
+			}
+		case cm := <-h.in:
+			for handler := range h.handlers {
+				handler.OnMessage(h, cm.m, func(m Message) {
+					cm.c.out <- m
+				})
+			}
+		case <-h.shutdown:
+			log.Printf("Closing %d websockets", len(h.clients))
+			for client := range h.clients {
+				h.closeclient(client)
+			}
+			return
+		}
+	}
 }
