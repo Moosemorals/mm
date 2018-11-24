@@ -25,7 +25,6 @@ func main() {
 
 	wwwroot := flag.String("wwwroot", ".", "Directory to serve static files from")
 	debug := flag.Bool("debug", false, "Use debug certificates")
-
 	flag.Parse()
 
 	if *debug {
@@ -40,14 +39,15 @@ func main() {
 		}
 	}
 
-
+	// Make the server
 	s := server.Create(opts)
-	// Static handler
+
+	// Add a static handler
 	s.Handle("/", logRequest(http.FileServer(http.Dir(*wwwroot))))
 
-	// Linkshare
+	// Add the linkshare handler
 	hub := linkshare.NewHub()
-	s.Handle("/ws", hub)
+	s.Handle("/ws", logRequest(hub))
 	s.OnShutdown(hub.Shutdown)
 
 	s.Start()
