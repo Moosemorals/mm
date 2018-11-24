@@ -5,14 +5,17 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/moosemorals/mm/server"
 )
 
 func logRequest(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
+		defer func() {
+			log.Printf("%s %s %s", req.RemoteAddr, req.Method, req.RequestURI)
+		}()
 		h.ServeHTTP(w, req)
-		log.Printf("%s %s %s", req.RemoteAddr, req.Method, req.RequestURI)
 	}
 }
 
@@ -29,7 +32,12 @@ func main() {
 		opts.SetDebug()
 	}
 
-	opts.AddAddr(":8081", ":8443")
+	for _, a := range flag.Args() {
+		parts := strings.Split(a, ",")
+		if len(parts) == 2 {
+			opts.AddAddr(parts[0], parts[1])
+		}
+	}
 
 	s := server.Create(opts)
 	s.Handle("/", logRequest(http.FileServer(http.Dir(*wwwroot))))
