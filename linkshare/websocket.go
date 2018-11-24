@@ -55,9 +55,9 @@ func (c *client) read() {
 		var msg Message
 		err := c.conn.ReadJSON(&msg)
 		if err != nil {
-			//			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-			log.Printf("Websocket client error: %v", err)
-			//			}
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("Websocket client error: %v", err)
+			}
 			break
 		}
 		c.hub.in <- msg
@@ -106,6 +106,7 @@ type Hub struct {
 	in         chan Message
 	register   chan *client
 	unregister chan *client
+	shutdown   chan int
 }
 
 // NewHub initilises a new Hub
@@ -115,6 +116,7 @@ func NewHub() *Hub {
 		in:         make(chan Message),
 		register:   make(chan *client),
 		unregister: make(chan *client),
+		shutdown:   make(chan int),
 	}
 	go h.run()
 	return h
@@ -142,8 +144,19 @@ func (h *Hub) run() {
 					h.closeclient(client)
 				}
 			}
+		case <-h.shutdown:
+			log.Printf("Closing %d websockets", len(h.clients))
+			for client := range h.clients {
+				h.closeclient(client)
+			}
+			return
 		}
 	}
+}
+
+// Shutdown client websockets cleanly
+func (h *Hub) Shutdown() {
+	h.shutdown <- 1
 }
 
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {

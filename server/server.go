@@ -101,6 +101,15 @@ func (s *Server) Handle(path string, h http.Handler) {
 	s.mux.Handle(path, h)
 }
 
+// OnShutdown passes f to the http.Server.RegisterShutdown function
+func (s *Server) OnShutdown(f func()) {
+	for _, h := range s.servers {
+		if getProto(h) == "HTTPS" {
+			h.RegisterOnShutdown(f)
+		}
+	}
+}
+
 func getProto(h *http.Server) string {
 	if h.TLSConfig != nil {
 		return "HTTPS"

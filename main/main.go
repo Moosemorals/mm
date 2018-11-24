@@ -48,6 +48,7 @@ func main() {
 	// Linkshare
 	hub := linkshare.NewHub()
 	s.Handle("/ws", hub)
+	s.OnShutdown(hub.Shutdown)
 
 	s.Start()
 }
