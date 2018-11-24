@@ -1,3 +1,6 @@
+github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
+github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/moosemorals/mm v0.0.0-20181121204859-43fa201ee8bf h1:8ltnZ9e9lnr7DofVFFE8icfe2SDMjkMxeU3DkT1d38o=
 github.com/moosemorals/mm/server v0.0.0-20181118210418-d102a1166153 h1:Q17NgvIf7WvdrNPF2u+yFMW1N0LlJPHW2NZkQfcutN0=
 github.com/moosemorals/mm/server v0.0.0-20181118210418-d102a1166153/go.mod h1:Nx8UkAb92GGluLQT81DemwMz6qx/k2ORzoAvO8Gw2T4=
 golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869 h1:kkXA53yGe04D0adEYJwEVQjeBppL01Exg+fnMjfUraU=

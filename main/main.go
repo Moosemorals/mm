@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/moosemorals/mm/linkshare"
 	"github.com/moosemorals/mm/server"
 )
 
@@ -39,7 +40,14 @@ func main() {
 		}
 	}
 
+
 	s := server.Create(opts)
+	// Static handler
 	s.Handle("/", logRequest(http.FileServer(http.Dir(*wwwroot))))
+
+	// Linkshare
+	hub := linkshare.NewHub()
+	s.Handle("/ws", hub)
+
 	s.Start()
 }

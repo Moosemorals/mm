@@ -43,7 +43,6 @@ func Create(opts Options) *Server {
 		Options: opts,
 		mux:     http.NewServeMux(),
 	}
-
 	for i, a := range s.httpAddr {
 		s.servers = append(s.servers, &http.Server{
 			Addr:         a,
@@ -57,6 +56,7 @@ func Create(opts Options) *Server {
 			}),
 		})
 	}
+
 	tlsConfig := &tls.Config{
 		PreferServerCipherSuites: true,
 		CurvePreferences: []tls.CurveID{
@@ -139,7 +139,7 @@ func (s *Server) Start() {
 				log.Printf("HTTPS server listening on %s", server.Addr)
 				var err error
 				if !s.debug {
-					err= server.ListenAndServeTLS("", "")
+					err = server.ListenAndServeTLS("", "")
 				} else {
 					err = server.ListenAndServeTLS("cert.pem", "key.pem")
 				}
