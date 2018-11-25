@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -90,7 +91,7 @@ func Create(opts Options) *Server {
 			WriteTimeout: 10 * time.Second,
 			IdleTimeout:  120 * time.Second,
 			TLSConfig:    tlsConfig,
-			Handler:      s.mux,
+			Handler:      handlers.CombinedLoggingHandler(os.Stdout, s.mux),
 		})
 	}
 	return s

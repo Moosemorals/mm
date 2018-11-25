@@ -11,15 +11,6 @@ import (
 	"github.com/moosemorals/mm/server"
 )
 
-func logRequest(h http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		defer func() {
-			log.Printf("%s %s %s", req.RemoteAddr, req.Method, req.RequestURI)
-		}()
-		h.ServeHTTP(w, req)
-	}
-}
-
 func main() {
 	opts := server.Options{}
 
@@ -43,11 +34,11 @@ func main() {
 	s := server.Create(opts)
 
 	// Add a static handler
-	s.Handle("/", logRequest(http.FileServer(http.Dir(*wwwroot))))
+	s.Handle("/", http.FileServer(http.Dir(*wwwroot)))
 
 	// Add the linkshare handler
 	hub := linkshare.NewHub()
-	s.Handle("/ws", logRequest(hub))
+	s.Handle("/ws", hub)
 	s.OnShutdown(hub.Shutdown)
 
 	s.Start()
