@@ -11,17 +11,6 @@ import (
 	"github.com/moosemorals/mm/server"
 )
 
-type broadcastHandler struct{}
-
-func (b *broadcastHandler) OnMessage(h *linkshare.Hub, msg linkshare.Message, reply linkshare.Reply) {
-	reply(linkshare.Message{
-		Target: "over there",
-		From: "you",
-		When: "later",
-	})
-	h.Broadcast(msg)
-}
-
 func logRequest(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		defer func() {
@@ -58,7 +47,6 @@ func main() {
 
 	// Add the linkshare handler
 	hub := linkshare.NewHub()
-	hub.RegisterHandler(&broadcastHandler{})
 	s.Handle("/ws", logRequest(hub))
 	s.OnShutdown(hub.Shutdown)
 

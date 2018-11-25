@@ -4,9 +4,11 @@ function init() {
 
     conn.onopen = function () {
         conn.send(JSON.stringify({
-            Target: "targt",
+            MsgType: "test",
             From: "me",
-            When: "now"
+            Payload: {
+                left: "1"
+            }
         }))
     }
 

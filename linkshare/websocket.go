@@ -126,6 +126,7 @@ func NewHub() *Hub {
 		shutdown:   make(chan int),
 	}
 	go h.run()
+	h.RegisterHandler(&linkshare{})
 	return h
 }
 
