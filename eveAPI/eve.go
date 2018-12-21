@@ -2,9 +2,16 @@ package eveapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 )
+
+// Eve holds state for the Eve API
+type Eve struct {
+	conf Config
+}
 
 // Config holds configuration details
 type Config struct {
@@ -12,23 +19,34 @@ type Config struct {
 	Secret   string
 }
 
-func readConfig() (c *Config, err error) {
-
-	raw, err := ioutil.ReadFile("config.json")
+// NewEve creates a new eve
+func NewEve() *Eve {
+	var e Eve
+	err := e.readConfig()
 	if err != nil {
-		return nil, err
+		log.Fatal("Can't read eve config:", err)
 	}
-	err = json.Unmarshal(raw, c)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
+	return &e
 }
 
-func main() {
-	c, err := readConfig()
+func (e *Eve) readConfig() error {
+
+	raw, err := ioutil.ReadFile("../eveAPI/config.json")
 	if err != nil {
-		log.Fatal("Can't read configuration", err)
+		return err
+	}
+	err = json.Unmarshal(raw, &e.conf)
+	if err != nil {
+		return err
 	}
 
+	return nil
+}
+
+func (e *Eve) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+
+	w.WriteHeader(200)
+
+	fmt.Fprintln(w, "Hello, eve!")
 }

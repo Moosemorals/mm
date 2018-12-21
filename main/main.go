@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/moosemorals/mm/eveapi"
-	"github.com/moosemorals/mm/linkshare"
+	_ "github.com/moosemorals/mm/linkshare"
 	"github.com/moosemorals/mm/server"
 )
 
@@ -38,10 +38,15 @@ func main() {
 	// Add a static handler
 	s.Handle("/", http.FileServer(http.Dir(*wwwroot)))
 
+	// Add the eve handler
+	s.Handle("/eve", eveapi.NewEve())
+
+	/*
 	// Add the linkshare handler
 	hub := linkshare.NewHub()
 	s.Handle("/ws", hub)
 	s.OnShutdown(hub.Shutdown)
+*/
 
 	s.Start()
 }
