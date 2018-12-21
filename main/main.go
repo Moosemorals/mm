@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/moosemorals/mm/eveapi"
 	"github.com/moosemorals/mm/linkshare"
 	"github.com/moosemorals/mm/server"
 )
 
 func main() {
 	opts := server.Options{}
+
 
 	wwwroot := flag.String("wwwroot", ".", "Directory to serve static files from")
 	debug := flag.Bool("debug", false, "Use debug certificates")

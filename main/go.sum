@@ -3,7 +3,12 @@ github.com/gorilla/handlers v1.4.0/go.mod h1:Qkdc/uu4tH4g6mTK6auzZ766c4CA0Ng8+o/
 github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/moosemorals/mm v0.0.0-20181121204859-43fa201ee8bf h1:8ltnZ9e9lnr7DofVFFE8icfe2SDMjkMxeU3DkT1d38o=
+github.com/moosemorals/mm v0.0.0-20181125084247-e7d91462ec05 h1:z5aPQS94RBwKf2ARuR4Rd40CqGahWOibgn8rFqG+k0A=
+github.com/moosemorals/mm/eve-industry v0.0.0-20181221094311-4ad84298270d h1:IAxCEu7T4E0MuWfsf/FicEZ8oVPL6xyutqwsjrsEG7o=
+github.com/moosemorals/mm/eve-industry v0.0.0-20181221094311-4ad84298270d/go.mod h1:WK4LzEO622K40M6IUjQxbQrEQ5DdnFnZ96m9ianDTS4=
 github.com/moosemorals/mm/server v0.0.0-20181118210418-d102a1166153 h1:Q17NgvIf7WvdrNPF2u+yFMW1N0LlJPHW2NZkQfcutN0=
 github.com/moosemorals/mm/server v0.0.0-20181118210418-d102a1166153/go.mod h1:Nx8UkAb92GGluLQT81DemwMz6qx/k2ORzoAvO8Gw2T4=
 golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869 h1:kkXA53yGe04D0adEYJwEVQjeBppL01Exg+fnMjfUraU=
 golang.org/x/crypto v0.0.0-20181112202954-3d3f9f413869/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
+golang.org/x/net v0.0.0-20181220203305-927f97764cc3/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
