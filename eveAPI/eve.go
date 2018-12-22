@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"log"
@@ -54,13 +53,18 @@ func writeError(w http.ResponseWriter, status int, msg string, err error) {
 	fmt.Fprintf(w, "%s\n%v", msg, err)
 }
 
-func (e *Eve) apiFetch(u *User, path string) (*http.Response, error) {
+func getAPIPath(path string) string {
+	return fmt.Sprintf("%s%s", apiURL, path)
+}
 
-	client := e.makeClient(u)
+func (e *Eve) apiGet(u *User, path string) (*http.Response, error) {
+	log.Printf("EVE API GET %s", path)
+	return e.makeClient(u).Get(getAPIPath(path))
+}
 
-	log.Printf("EVE API Fetching %s", path)
-
-	return client.Get(fmt.Sprintf("%s%s", apiURL, path))
+func (e *Eve) apiPost(u *User, path string, body io.ReadCloser) (*http.Response, error) {
+	log.Printf("EVE API POST %s", path)
+	return e.makeClient(u).Post(getAPIPath(path), "application/json", body)
 }
 
 // NewEve creates a new eve
@@ -127,43 +131,24 @@ func (e *Eve) getUser(r *http.Request) (*User, error) {
 }
 
 func (e *Eve) handleLogin(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html;charset=utf-8")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
 	user, err := e.getUser(r)
 	if err == nil {
-
-		t := template.New("hello2.html")
-		t, err := t.ParseFiles("../eveAPI/hello2.html")
-		if err != nil {
-			writeError(w, 500, "Can't parse template", err)
-			return
-		}
-
-		if err = t.Execute(w, user); err != nil {
-			writeError(w, 500, "Can't use template", err)
-			return
-		}
+		json.NewEncoder(w).Encode(struct {
+			Name string
+			ID   int32
+		}{
+			Name: user.Name,
+			ID:   user.ID,
+		})
 	} else {
-		t := template.New("hello.html")
-		t, err := t.ParseFiles("../eveAPI/hello.html")
-		if err != nil {
-			writeError(w, 500, "Can't parse template", err)
-			return
-		}
-
-		state := randStr(40)
-
-		data := struct {
+		state := randStr(42)
+		json.NewEncoder(w).Encode(struct {
 			AuthURL string
-			State   string
 		}{
 			AuthURL: e.getAuthURL(state),
-			State:   state,
-		}
-
-		if err = t.Execute(w, data); err != nil {
-			writeError(w, 500, "Can't use template", err)
-			return
-		}
+		})
 	}
 }
 
@@ -182,7 +167,7 @@ func (e *Eve) handleAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Token: tok,
 	}
 
-	response, err := e.apiFetch(user, "/verify")
+	response, err := e.apiGet(user, "/verify")
 	if err != nil {
 		writeError(w, 500, "Can't verify user", err)
 		return
@@ -212,7 +197,6 @@ func (e *Eve) handleAuthCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *Eve) handleAPI(w http.ResponseWriter, r *http.Request) {
-
 	user, err := e.getUser(r)
 	if err != nil {
 		writeError(w, 500, "Can't get current user", err)
@@ -226,10 +210,20 @@ func (e *Eve) handleAPI(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "Missing path", nil)
 		return
 	}
+	method := query.Get("m")
 
-	resp, err := e.apiFetch(user, target)
+	var resp *http.Response
+	if len(method) == 0 || method == "GET" {
+		resp, err = e.apiGet(user, target)
+	} else if method == "POST" {
+		log.Println("EVE: Starting post")
+		resp, err = e.apiPost(user, target, r.Body)
+		log.Println("EVE: Post complete")
+	}
+
 	if err != nil {
 		writeError(w, 500, "Failed to fetch from API", nil)
+		return
 	}
 
 	defer resp.Body.Close()
