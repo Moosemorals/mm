@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,7 +18,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const apiURL = "https://esi.evetech.net/"
+const apiURL = "https://esi.evetech.net"
+
+var interestingHeaders = []string{"Content-Type", "Content-Length", "Cache-Control", "ETag", "Expires", "Last-Modified", "X-Pages"}
 
 // Eve holds state for the Eve API
 type Eve struct {
@@ -44,33 +47,20 @@ func randStr(len int) string {
 	return flatten.ReplaceAllString(str[:len], "")
 }
 
-func writeError(w http.ResponseWriter, msg string, err error) {
+func writeError(w http.ResponseWriter, status int, msg string, err error) {
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(500)
+	w.WriteHeader(status)
 
 	fmt.Fprintf(w, "%s\n%v", msg, err)
 }
 
-func apiFetch(client *http.Client, path string) (json.RawMessage, error) {
+func (e *Eve) apiFetch(u *User, path string) (*http.Response, error) {
+
+	client := e.makeClient(u)
+
 	log.Printf("EVE API Fetching %s", path)
 
-	resp, err := client.Get(path)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var j json.RawMessage
-	if err = json.Unmarshal(body, &j); err != nil {
-		return nil, err
-	}
-
-	return j, nil
+	return client.Get(fmt.Sprintf("%s%s", apiURL, path))
 }
 
 // NewEve creates a new eve
@@ -114,8 +104,8 @@ func (e *Eve) readConfig() error {
 	return nil
 }
 
-func (e *Eve) makeClient(tok *oauth2.Token) *http.Client {
-	return e.oauth.Client(context.Background(), tok)
+func (e *Eve) makeClient(u *User) *http.Client {
+	return e.oauth.Client(context.Background(), u.Token)
 }
 
 func (e *Eve) getAuthURL(state string) string {
@@ -144,20 +134,19 @@ func (e *Eve) handleLogin(w http.ResponseWriter, r *http.Request) {
 		t := template.New("hello2.html")
 		t, err := t.ParseFiles("../eveAPI/hello2.html")
 		if err != nil {
-			writeError(w, "Can't parse template", err)
+			writeError(w, 500, "Can't parse template", err)
 			return
 		}
 
 		if err = t.Execute(w, user); err != nil {
-			writeError(w, "Can't use template", err)
+			writeError(w, 500, "Can't use template", err)
 			return
 		}
 	} else {
-
 		t := template.New("hello.html")
 		t, err := t.ParseFiles("../eveAPI/hello.html")
 		if err != nil {
-			writeError(w, "Can't parse template", err)
+			writeError(w, 500, "Can't parse template", err)
 			return
 		}
 
@@ -172,7 +161,7 @@ func (e *Eve) handleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err = t.Execute(w, data); err != nil {
-			writeError(w, "Can't use template", err)
+			writeError(w, 500, "Can't use template", err)
 			return
 		}
 	}
@@ -185,30 +174,30 @@ func (e *Eve) handleAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	tok, err := e.oauth.Exchange(context.Background(), authCode)
 	if err != nil {
-		writeError(w, "Can't exchange auth code for token", err)
+		writeError(w, 500, "Can't exchange auth code for token", err)
 		return
 	}
 
-	client := e.makeClient(tok)
-	j, err := apiFetch(client, fmt.Sprintf("%sverify", apiURL))
-	if err != nil {
-		writeError(w, "Can't verify user", err)
-		return
-	}
-
-	var v Verify
-	if err = json.Unmarshal(j, &v); err != nil {
-		writeError(w, "Can't parse user data", err)
-		return
-	}
-
-	user := User{
+	user := &User{
 		Token: tok,
-		ID:    v.CharacterID,
-		Name:  v.CharacterName,
 	}
 
-	e.users.add(state, &user)
+	response, err := e.apiFetch(user, "/verify")
+	if err != nil {
+		writeError(w, 500, "Can't verify user", err)
+		return
+	}
+	defer response.Body.Close()
+	var v Verify
+	if err = json.NewDecoder(response.Body).Decode(&v); err != nil {
+		writeError(w, 500, "Can't parse verify respone", err)
+		return
+	}
+
+	user.ID = v.CharacterID
+	user.Name = v.CharacterName
+
+	e.users.add(state, user)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "state",
@@ -221,24 +210,35 @@ func (e *Eve) handleAuthCallback(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", "/eve")
 	w.WriteHeader(302)
 }
+
 func (e *Eve) handleAPI(w http.ResponseWriter, r *http.Request) {
 
 	user, err := e.getUser(r)
 	if err != nil {
-		writeError(w, "Can't get current user", err)
+		writeError(w, 500, "Can't get current user", err)
 		return
 	}
 
-	target := fmt.Sprintf("%slatest/characters/%d/assets/", apiURL, user.ID)
+	query := r.URL.Query()
 
-	raw, err := apiFetch(e.makeClient(user.Token), target)
-	if err != nil {
-		log.Fatal("Can't get from api", err)
+	target := query.Get("p")
+	if len(target) == 0 {
+		writeError(w, 400, "Missing path", nil)
+		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(200)
-	w.Write(raw)
+	resp, err := e.apiFetch(user, target)
+	if err != nil {
+		writeError(w, 500, "Failed to fetch from API", nil)
+	}
+
+	defer resp.Body.Close()
+
+	for _, name := range interestingHeaders {
+		w.Header().Set(name, resp.Header.Get(name))
+	}
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 
 }
 
