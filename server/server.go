@@ -76,7 +76,7 @@ func Create(opts Options) *Server {
 	}
 	if !s.debug {
 		m := &autocert.Manager{
-			Cache:      autocert.DirCache("~/moosemorals.com/tls"),
+			Cache:      autocert.DirCache("tls"),
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist("moosemorals.com", "www.moosemorals.com"),
 		}

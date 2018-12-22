@@ -39,7 +39,7 @@ func main() {
 	s.Handle("/", http.FileServer(http.Dir(*wwwroot)))
 
 	// Add the eve handler
-	s.Handle("/eve", eveapi.NewEve())
+	s.Handle("/eve/", eveapi.NewEve())
 
 	/*
 	// Add the linkshare handler
