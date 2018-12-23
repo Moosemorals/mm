@@ -77,7 +77,7 @@ func NewEve() *Eve {
 	e.oauth = &oauth2.Config{
 		ClientID:     e.conf.ClientID,
 		ClientSecret: e.conf.Secret,
-		Scopes:       []string{"esi-assets.read_assets.v1"},
+		Scopes:       []string{"publicData", "esi-assets.read_assets.v1", "esi-industry.read_character_jobs.v1", "esi-characters.read_blueprints.v1"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://login.eveonline.com/v2/oauth/authorize/",
 			TokenURL: "https://login.eveonline.com/v2/oauth/token",
@@ -192,7 +192,7 @@ func (e *Eve) handleAuthCallback(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   60 * 60 * 24,
 	})
 
-	w.Header().Set("Location", "/eve")
+	w.Header().Set("Location", "/eve/index.html")
 	w.WriteHeader(302)
 }
 
@@ -237,14 +237,14 @@ func (e *Eve) handleAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *Eve) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if strings.HasPrefix(r.URL.Path, "/eve/auth2") {
+	if strings.HasPrefix(r.URL.Path, "/eveapi/auth2") {
 		log.Print("EVE: Handing to auth callback")
 		e.handleAuthCallback(w, r)
-	} else if strings.HasPrefix(r.URL.Path, "/eve/api") {
+	} else if strings.HasPrefix(r.URL.Path, "/eveapi/api") {
 		log.Print("EVE: Handing to API")
 		e.handleAPI(w, r)
 	} else {
-		log.Print("EVE: Showing login link")
+		log.Print("EVE: Sending user data")
 		e.handleLogin(w, r)
 	}
 }

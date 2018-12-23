@@ -58,6 +58,14 @@ function $$(selector) {
     return Array.from(document.querySelectorAll(selector))
 }
 
+function hide(el) {
+    el.classList.add("hidden")
+}
+
+function show(el) {
+    el.classList.remove("hidden")
+}
+
 function apiPost(target, body) {
     return fetch(target + "&m=POST", {
         method: "POST",
@@ -81,7 +89,7 @@ function apiGet(target) {
 }
 
 function makeApiPath(path) {
-    return "/eve/api?p=" + encodeURIComponent(path)
+    return "/eveapi/api?p=" + encodeURIComponent(path)
 }
 
 function buildAssetRow(asset) {
@@ -137,12 +145,9 @@ function getAssets(user) {
 
             for (let i = 0; i < json.length; i += 1) {
                 const row = json[i]
-                if (row.location_id === 1026857655678) {
-                    debugger
-                }
                 if (row.location_type === "other") {
                     if (row.location_flag !== "Hangar") {
-                       toLookup.private[row.location_id] = true
+                        toLookup.private[row.location_id] = true
                     }
                 } else {
                     toLookup.public[row.location_id] = true
@@ -151,7 +156,7 @@ function getAssets(user) {
                 tbody.appendChild(buildAssetRow(row))
             }
 
-            appendChildren($("#script"), buildElement("table", undefined,
+            appendChildren($("#holder"), buildElement("table", undefined,
                 buildElement("thead", undefined, buildElement("tr", undefined,
                     buildElement("th", undefined, "Location"),
                     buildElement("th", undefined, "Type"),
@@ -167,12 +172,14 @@ function getAssets(user) {
 }
 
 function init() {
-    apiGet("/eve/").then(json => {
+    apiGet("/eveapi/").then(json => {
         if ("Name" in json) {
-            appendChildren(empty($("#script")), "Hello ", json.Name)
+            hide($("#register"))
+            show($("#holder"))
+            appendChildren(empty($("#holder")), "Hello ", json.Name)
             getAssets(json)
         } else if ("AuthURL" in json) {
-            appendChildren(empty("#script"), buildElement("a", { href: json.AuthURL }, "Login"))
+            $("#authURL").setAttribute("href", json.AuthURL)
         }
     })
 }
