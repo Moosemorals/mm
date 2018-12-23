@@ -8,3 +8,13 @@
     justify-content: flex-start;
     align-items: center;
 }
+
+#holder table {
+	border: none;
+    border-collapse: separate;
+}
+
+#holder th, #holder td {
+	border: 1px solid gray;
+	padding: 1px;
+}
