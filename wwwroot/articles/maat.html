@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html >
+
+<head>
+    <title>Maat - A new Firewall</title>
+    <meta name="description" content="How I built my new firewall" />
+    <meta name="author" content="Osric Wilkinson" />
+    <meta name="date" content="2014-09-04" />
+</head>
+
+<body>
+    <h1><a id="introduction">Introduction</a></h1>
+
+    <p>This is an attempt to document my new
+        <a href="https://en.wikipedia.org/wiki/Firewall_(computing)">firewall</a>.
+        I want to keep track of information and links in a single place, both
+        for my own reference and to help other people make their own choices.</p>
+
+    <h1>Summary</h1>
+
+    <table>
+        <tr>
+            <th>Component</th>
+            <th>Model</th>
+            <th>Link to spec</th>
+            <th>Link to manual</th>
+            <th>Cost</th>
+            <th>Vendor</th>
+        </tr>
+        <tr>
+            <td>Motherboard</td>
+            <td>Gigabyte GA-H18M-H</td>
+            <td><a href="http://www.gigabyte.com/products/product-page.aspx?pid=4737#sp">Spec</a></td>
+            <td><a href="/resources/maat/Gigabyte GA-H18M-H.pdf">Manual</a></td>
+            <td>&#163;33.00</td>
+            <td><a href="http://www.ebuyer.com/product/629505">eBuyer</a></td>
+        </tr>
+        <tr>
+            <td>CPU</td>
+            <td>Intel Core i3-4130T</td>
+            <td><a href="http://ark.intel.com/products/77481/Intel-Core-i3-4130T-Processor-3M-Cache-2_90-GHz">Spec</a></td>
+            <td>n/a</td>
+            <td>&#163;89.64</td>
+            <td><a href="http://www.ebuyer.com/product/538169">eBuyer</a></td>
+        </tr>
+        <tr>
+            <td>PSU</td>
+            <td>Silver Power SP-S4600FL</td>
+            <td>?</td>
+            <td>?</td>
+            <td>&#163;92.00</td>
+            <td><a href="http://www.amazon.co.uk/gp/product/B007FN5LUY/ref=oh_details_o01_s00_i00?ie=UTF8&amp;psc=1">Amazon</a></td>
+        </tr>
+        <tr>
+            <td>4 GB Memory</td>
+            <td>Kingston 1600MHz DDR3</td>
+            <td><a href="http://www.kingston.com/en/memory/valueram/desktop">Spec-ish</a></td>
+            <td>n/a</td>
+            <td>&#163;29.99</td>
+            <td><a href="http://www.ebuyer.com/product/500865">eBuyer</a></td>
+        </tr>
+        <tr>
+            <td>Heatsink</td>
+            <td>Nofan CR-80EH</td>
+            <td><a href="http://www.nofancomputer.com/eng/products/CR-80EH.php">Spec</a> (scroll down)</td>
+            <td><a href="/resources/maat/Nofan CR-80EH.pdf">Manual</a>
+            <td>&#163;36.46</td>
+            <td><a href="http://www.ebuyer.com/product/620983">eBuyer</a></td>
+            </td>
+        </tr>
+        <tr>
+            <td>40GB SSD</td>
+            <td>Intel 320 Series SSD</td>
+            <td><a href="http://ark.intel.com/products/56568/Intel-SSD-320-Series-40GB-2_5in-SATA-3Gbs-25nm-MLC">Spec</a></td>
+            <td><a href="http://www.intel.com/p/en_US/support/highlights/ssdc/ssd-320">Intel support</a></td>
+            <td>&#163;19.98</td>
+            <td><a href="http://www.ebuyer.com/product/261748">eBuyer</a></td>
+        </tr>
+        <tr>
+            <td>3 TB HDD</td>
+            <td>WD RED 3TB</td>
+            <td><a href="http://www.wdc.com/global/products/specs/?driveID=1087&amp;language=1">Spec</a></td>
+            <td>n/a</td>
+            <td>&#163;91.22</td>
+            <td><a href="http://www.ebuyer.com/390986-wd-red-3tb-3-5in-sata6-wd30efrx">eBuyer</a></td>
+        </tr>
+        <tr>
+            <td>Wired (gigabit) network card</td>
+            <td>TP-Link TG-3468</td>
+            <td><a href="http://uk.tp-link.com/products/details/?model=TG-3468#spec">Spec</a></td>
+            <td><a href="/resources/maat/TP-Link TG-3468.pdf">Manual</a></td>
+            <td>&#163;&#160;6.80</td>
+            <td><a href="http://www.amazon.co.uk/gp/product/B001OQSZQ0/ref=oh_details_o00_s00_i01?ie=UTF8&amp;psc=1">Amazon</a></td>
+        </tr>
+        <tr>
+            <td>Wireless (802.11b/g/n) network card</td>
+            <td>TP-Link TL-WN781ND</td>
+            <td><a href="http://uk.tp-link.com/products/details/?model=TL-WN781ND#spec">Spec</a></td>
+            <td><a href="/resources/maat/TP-Link TL-WN781ND.pdf">Manual</a></td>
+            <td>&#163;&#160;8.65</td>
+            <td><a href="http://www.amazon.co.uk/gp/product/B0036AFAEW/ref=oh_details_o00_s00_i00?ie=UTF8&amp;psc=1">Amazon</a></td>
+        </tr>
+        <tr>
+            <td>Case</td>
+            <td>Nofan CS-30</td>
+            <td><a href="http://www.nofancomputer.com/eng/products/CS-30.php">Spec-ish</a></td>
+            <td>n/a</td>
+            <td>&#163;40.57</td>
+            <td><a href="http://www.quietpc.com/nof-cs-30">Quiet PC</a></td>
+        </tr>
+        <tr>
+            <td>Keyboard and mouse</td>
+            <td>Logitech Wireless Combo MK270</td>
+            <td><a href="http://logitech-en-ap.custhelp.com/app/answers/detail/a_id/26722/section/troubleshoot/crid/403/lt_product_id/8320/tabs/1,3,2,4/cl/sg,en">Spec</a></td>
+            <td><a href="/resources/maat/Logitech MK270.pdf">Manual</a></td>
+            <td>&#163;20.00</td>
+            <td><a href="http://www.amazon.co.uk/gp/product/B00CL6353A/ref=oh_details_o00_s00_i02?ie=UTF8&amp;psc=1">Amazon</a></td>
+        </tr>
+        <tr>
+            <td>Gigabit switch</td>
+            <td>TP-Link TL-SG1008D</td>
+            <td><a href="http://www.tp-link.com/lk/products/details/?model=TL-SG1008D#spec">Spec</a></td>
+            <td><a href="/resources/maat/TP-Link TL-SG1008D.pdf">Manual</a></td>
+            <td>&#163;20.61</td>
+            <td><a href="http://www.ebuyer.com/product/262942">eBuyer</a></td>
+        </tr>
+        <tr>
+            <td>Total cost</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>&#163;397.70</td>
+            <td></td>
+        </tr>
+    </table>
+
+    <p>The cost is just within the &#163;400 budget (because the 3TB drive
+        came out of a different budget). This should give me a fanless,
+        low power, linux friendly firewall that should also run World of
+        Warcraft, and be a useful test/development machine.</p>
+
+    <h3><a id="history">Some History</a></h3>
+
+    <p>I bought my previous firewall ("Hathor") in 2006, and it was based
+        around a <a href="http://www.viaembedded.com/en/products/boards/241/1/EPIA_PD-Series_Mini-ITX_Board_(EOL).html">VIA
+            EPIA PD6000</a> <a href="http://en.wikipedia.org/wiki/Mini-ITX">Mini-ITX</a>
+        motherboard, which, at the time, was a good compromise between
+        cheap, low power, and functional. Hathor had
+        a <a href="http://en.wikipedia.org/wiki/VIA_C3#Samuel_2_and_Ezra_cores">VIA C3</a>
+        processor (broadly equivalent to an Intel Pentium III
+        (<a href="http://www.bluesmoke.net/review45_p.html">Source</a>),
+        512MB of ram and a 20GB hard disk.</p>
+
+    <p>Hathor has been a rock solid machine for the last 8 years, but has
+        been becoming slow relative to the other PC's in the house, and given
+        the increasing load that I have put upon it.
+        (See: <a href="https://tomcat.apache.org/">Apache Tomcat</a>). Also,
+        the initial choice of a micro-itx motherboard has meant that it has
+        been hard to upgrade components. I have been able to add in a
+        <a href="https://en.wikipedia.org/wiki/Serial_ATA">SATA</a> card so
+        that I could use a spare hard drive (from when I upgraded the one in
+        my <a href="https://www.toshiba.co.uk/discontinued-products/satellite-pro-l300-1fl/">laptop</a>).
+        (As part of this upgrade project, I bought a
+        <a href="http://www.wdc.com/global/products/specs/?driveID=1087&amp;language=1">3TB
+            hard disk</a> which is currently in hathor, but will be moved to
+        maat once the build is complete.)</p>
+
+    <h3>On names</h3>
+
+    I have been using names from the old Egyptian panthanon
+    (so <a href="https://en.wikipedia.org/wiki/Hathor">Hathor</a> (Goddess
+    of the sky) for the old firewall), and I have previously used
+    <a href="https://en.wikipedia.org/wiki/Maat">Maat</a> (Goddess of truth).
+    I am currently torn between using Maat again (breaking my "don't reuse names"
+    guideline) or using
+    <a href="https://en.wikipedia.org/wiki/List_of_The_Elenium_and_The_Tamuli_characters#The_Troll_Gods">Schlee</a>
+    - the troll god of ice (from David Eddings Elenium/Tamuli series) (which is not Egyptian).
+
+    <h1><a id="components">Components</a></h1>
+
+    <p>A modern computer is made up from a long list of parts:</p>
+
+    <ul>
+        <li><a href="#motherboard">Motherboard</a> (To connect other components)</li>
+        <li><a href="#cpu">CPU</a> (or chip, to do most of the heavy thinking)</li>
+        <li><a href="#cooler">Cooler</a> (to stop the <a href="#cpu">CPU</a> from melting)</li>
+        <li><a href="#ssd">Hard disk</a> (To hold data and software thats likely to be needed in the long term)</li>
+        <li><a href="#case">Case</a> (To hold everything else together)</li>
+        <li><a href="#psu">Power supply</a> (To pass electricity arround)</li>
+        <li><a href="#cards">Extras</a> (Some extra bits and pieces)</li>
+    </ul>
+
+    <h2><a id="cooler">Cooler</a></h2>
+
+    <p>The first component I found was the cooler for the CPU. </p>
+
+    <p>originally, I was going to go with another mini-itx board. (Specifically,
+        a <a href="http://www.zotac.com/products/mini-pcs/zbox-blu-ray/amd/product/amd-1/detail/e2-1800-itx-wifi-a-series.html">ZOTAC
+            E2-1800 ITX</a>) because I thought that would give me the right
+        combination of low power (or at least, low heat) and low cost, while
+        still giving me a reasonable increase in CPU power. But I wasn't happy
+        with the compromises inherent in the mini-itx route, or of the lack
+        of expansion slots and the cramped case. </p>
+
+    <p>I checked my assumptions:</p>
+
+    <p>Why was I looking for a mini-itx board? </p>
+
+    <p>Because they were low power. </p>
+
+    <p>Why do I want a low power board?</p>
+
+    <p>Because I don't want a fan.</p>
+
+    <p>Why don't I want a fan?</p>
+
+    <p>Because I don't want the server to make any noise.</p>
+
+    <p>Armed with new knowledge of what I wanted, I searched for fanless
+        heatsinks. And I found the <a href="http://www.nofancomputer.com/eng/products/CR-80EH.php">NOFAN
+            CR-80EH</a>. It will cool chips of up to 80 TDP, and it costs less
+        than &#163;40 (&#163;36.46 from <a href="http://www.ebuyer.com/620983-nofan-cr-80eh-icepipe-fanless-cpu-coolers-nofan-cr-80eh">eBuyer</a>).</p>
+
+    <p>It is just possible that I can build a proper PC, but with no fans....</p>
+
+    <h2><a name="cpu">CPU</a></h2>
+
+    <p>The CPU I have chosen is an <a href="http://ark.intel.com/products/77481/Intel-Core-i3-4130T-Processor-3M-Cache-2_90-GHz">Intel
+            Core i3-4130T</a>. Its dual core, "Hyper-Threaded" (which means
+        it pretends to be a four-core chip), supports hardware virtualization,
+        and, most important, has a <a href="https://en.wikipedia.org/wiki/Thermal_design_power">TDP</a>
+        of only 35 Watts. (I say only - the old chip apparently has a TDP
+        of 2 Watts...). This gives me hope for my fanless plan.</p>
+
+    <p>(I think I looked at AMD chips, and I think that I found the
+        <a href="https://en.wikipedia.org/wiki/FLOPS">FLOP</a>/Watt ratio too
+        poor, but I can't actaully remember doing that. I feel a bit worried
+        now that I've made the wrong choice. Ah, paranoia.)</p>
+
+    <h2><a name="motherboard">Motherboard</a></h2>
+
+    <p>Given the CPU, I can now pick a motherboard. The chip needs an
+        <a href="https://en.wikipedia.org/wiki/LGA_1150">LGA 1150</a> motherboard.
+        When I was looking for a mini-itx board, I wanted on-board wireless
+        and two wired network ports (one for the LAN, one for the Internet)
+        but I slowly came to realise that what I really wanted in a motherboard was expansion slots. </p>
+
+    <p>The motherboard I have chosen is a Gigabyte
+        <a href="http://www.gigabyte.com/products/product-page.aspx?pid=4737#sp">GA-H18M-H</a>.
+        That link is to a long list of specifications, but the two important
+        ones for me are the combination of the price (&#163;33 from
+        <a href="http://www.ebuyer.com/629505-gigabyte-ga-h81m-h-socket-1150-vga-hdmi-hd-audio-micro-atx-motherboard-ga-h81m-h">eBuyer</a>
+        and the 3 <a href="https://en.wikipedia.org/wiki/PCI_Express">PCI-E</a>
+        slots.</p>
+
+    <p>The motherboard has an <a href="https://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface">UEIF</a>
+        BIOS, which supports larger hard disks and (should) alow me to use
+        Secure Boot, assuming I can get it to work.</p>
+
+    <p>It also has <a href="https://en.wikipedia.org/wiki/HDMI">HDMI</a> out,
+        so I can easily connect it to our living room TV. (Shinju would like
+        me to get World of Warcraft running on the new machine so we can play
+        together)</p>
+
+    <h2><a name="case">Case</a></h2>
+
+    <p>So far so good, but I'm not going to be able to use my old case (which
+        is good, because I want to re-purpose the old machine as a media display
+        for the bedroom. But that's another project). </p>
+
+    <p>Looking around the <a href="http://www.nofancomputer.com">NOFAN</a> website,
+        they also make cases. Specifically, they make cases with lots of holes
+        which are good for people making fanless PCs. Very specifically they
+        make the <a href="http://www.nofancomputer.com/eng/products/CS-30.php">CS-30</a>
+        case, which is cheap (about &#163;40 including next day shipping
+        from <a href="http://www.quietpc.com/nof-cs-30">Quiet PC</a>), will
+        hold a couple of 3.5" hard disks and a 2.5" disk, and will take proper
+        expansion cards (rather than needing a weird riser card like the old
+        case).</p>
+
+    <h2><a name="PSU">Power supply</a></h2>
+
+    <p>The case doesn't come with a power supply, but its going to need one.
+        NOFAN also do fanless power supplies, the <a href="http://www.nofancomputer.com/eng/products/P-400A.php">P-400A</a>
+        which is nice, but pricey. However, given the existence of one, I
+        should be able to find others.</p>
+
+    <p><a href="http://www.amazon.co.uk">Amazon</a> sell a 400W PSU from
+        Silver Power, for just under &#163;100, which is also fanless - the
+        SP-S4600FL. (No link for this one as I can't find the manufactures site).
+        400W should be far more than I need, which is good, because I don't
+        want to stress any of the components.</p>
+
+    <h2><a name="ssd">Storage</a></h2>
+
+    <p>I have recently bought a <a href="http://www.wdc.com/global/products/specs/?driveID=1087&amp;language=1">largish</a>
+        hard drive, but I also wanted to get a <a href="http://en.wikipedia.org/wiki/Solid-state_drive">SSD</a>
+        for the new server, partly to test the technology, but mostly because
+        they are just crazy fast.</p>
+
+    <p>SSDs are getting cheaper, but I still didn't have that much space in
+        the budget, so I've got a 40GB (&lt;oldfart&gt;40GB! I started with 5.25"
+        floppies with 360K!&lt;/oldfart&gt;) <a href="http://ark.intel.com/products/56568/Intel-SSD-320-Series-40GB-2_5in-SATA-3Gbs-25nm-MLC">Intel</a>
+        disk (because it was on special at eBuyer when I was shopping).</p>
+
+    <p>40GB should be more than plenty for a <a href="https://www.debian.org/releases/stable/amd64/ch02s05.html.en">Debian</a>
+        install. I'm still thinking about partitioning the disk, but I'm
+        fairly sure that I'll put my /home onto the 3TB disk.</p>
+
+    <h2><a name="cards">Everything else</a></h2>
+
+    <h3>Memory</h3>
+
+    <p>Memory is entirely generic these days. The motherboard has two DDR3 1600
+        slots that can take 8GB each. I can fit a 4GB memory chip into the
+        budget, and I may get a second one in a few months.</p>
+
+    <h3>Switch</h3>
+
+    <p>The original plan was to get a mini-itx board with onboard wireless
+        and two wired ethernet ports. I would have connected Shinju's PC directly
+        to the firewall, and connected the rest of the house network (wich
+        is the TV, X-Box, PVR and Blu-Ray player) through a hub, through a
+        USB-&gt;ethernet adapter. </p>
+
+    <p>However, it turns out that gigabit network switches are suprisingly cheap.
+        TP-LINK have an 8 port switch (the <a href="http://www.tp-link.com/lk/products/details/?model=TL-SG1008D">TL-SG1008D</a>)
+        on eBuyer for just over &#163;20, and all the network cables are
+        either <a href="https://en.wikipedia.org/wiki/Category_5_cable">cat5e</a> or
+        <a href="http://en.wikipedia.org/wiki/Category_6_cable">cat6</a>, so
+        I might as well take the opportunity to upgrade the network to gigabit. </p>
+
+    <p>(OK, so only the new firewall and Shinju's PC are gigabit, but hey,
+        its a good opportunity)</p>
+
+    <h3>Network cards</h3>
+
+    <p>The <a href="#motherboard">motherboard</a> only has one on board
+        network card, so I needed one more wired card to connect to the LAN,
+        and a wireless card to connect to the laptop. I had assumed that USB
+        adapters would be cheaper, but I was wrong. Amazon have a gigabit PCI-E
+        network card (again, from <a href="http://uk.tp-link.com/products/details/?model=TG-3468">TP-LINK</a>)
+        for about &#163;7, and a PCI-E wireless (802.11b/g/n) network card
+        (<i>again</i> from
+        <a href="http://uk.tp-link.com/products/details/?model=TG-3468">TP-LINK</a>)
+        for &#163;9.</p>
+
+    <p>(Upgrading the wireless to 802.11n should mean that the wireless
+        connection to the laptop will now be faster than the wired, since the
+        laptop only has "Fast" ethernet (100Mbps), and 802.11n is 150Mbs.)</p>
+
+    <p>(I've checked, and both the <a href="http://www.linux-hardware-guide.com/uk/2012-11-01-tp-link-tg-3468-gigabit-ethernet-pcie">wired</a>
+        and the <a href="http://www.linux-hardware-guide.com/uk/2012-11-01-tp-link-tl-wn781nd-pcie-150mbps">wireless</a>
+        cards are supported by Linux)</p>
+
+    <h3>Mouse and Keyboard</h3>
+
+    <p>I wasn't going to bother, but there was (just) space in the budget to
+        get a keyboard and mouse for the firewall. Since it is probably going
+        to be either beside, behind or under the TV, we don't want cables over
+        the floor, so I've got a <a href="http://www.logitech.com/en-sg/product/wireless-combo-mk270">Logitech
+            MK270 Wireless Combo</a> which should Just Work&#8482;. </p>
+
+    <h3>Surge protector</h3>
+
+    <p>Not strictly part of this build (the funds came out of a different budget),
+        I've got a surge protector. Its my first one, so I'm going to be
+        interested to know how well its going to work.</p>
+
+    <h1>Part 2 - Build</h1>
+    <p>As of 2014-05-25 I've ordered parts and I'm waiting for them to be
+        delivered. Once they're here I'll document the build (with photos!)
+        and then, as a part 3, document installing the OS.</p>
+
+</body>
+
+</html>

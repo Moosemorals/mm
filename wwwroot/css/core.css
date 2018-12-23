@@ -1,0 +1,154 @@
+body {
+    background-color: #A9DBFF;
+    color: black;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    font-family: 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
+    font-size: 100%;
+    overflow-y: scroll;
+    line-height: 1.5;
+}
+
+article,
+header,
+nav {
+    /* just in case */
+    display: block;
+}
+
+article,
+header,
+footer {
+    /* just in case */
+    display: block;
+    border: thin solid black;
+    padding: 8px;
+    margin: 16px;
+    box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.4);
+    background-color: #98CCF0;
+    border-radius: 10px;
+}
+
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+    margin: 0;
+    margin-bottom: 0.2em;
+    font-family: 'Lucida Console', 'Lucida Sans Typewriter', 'Courier New', Courier, monospace;
+}
+
+h2 {
+    font-size: 150%;
+    font-variant: small-caps;
+}
+
+h3 {
+    font-size: 125%;
+    font-variant: small-caps;
+}
+
+h4 {
+    font-size: 100%;
+    font-variant: small-caps;
+}
+
+h5 {
+    font-size: 100%;
+    font-variant: small-caps;
+    font-weight: normal;
+}
+
+a {
+    color: #00518B;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #003F6B;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+
+p {
+    margin-top: 0;
+    margin-bottom: 0.4em;
+}
+
+.cmd,
+#password {
+    border: thin solid black;
+    padding: 10px;
+    margin-left: 20px;
+    margin-bottom: 20px;
+    font-family: 'Lucida Console', Monaco, monospace;
+    white-space: nowrap;
+    font-weight: bold;
+    max-width: 100%;
+    background-color: #4B91C3;
+    overflow: auto;
+    line-height: 1.8;
+}
+
+.cmd:before {
+    content: "$ ";
+}
+
+.code {
+    border: thin solid black;
+    padding: 3px;
+    margin-right: 4px;
+    font-family: 'Lucida Console', Monaco, monospace;
+    white-space: pre;
+    font-weight: bold;
+    line-height: 1.8;
+    background-color: #4B91C3;
+    overflow: auto;
+}
+
+span.code {
+    border: none;
+    line-height: 1.8;
+    margin-right: auto;
+    background-color: inherit;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.quote {
+    font-family: 'Lucida Console', 'Lucida Sans Typewriter', 'Courier New', Courier, monospace;
+    font-size: 125%;
+    font-weight: bold;
+    line-height: 1.8;
+    text-align: center;
+}
+
+.attrib {
+    font-family: 'Lucida Console', 'Lucida Sans Typewriter', 'Courier New', Courier, monospace;
+    font-size: 60%;
+    font-weight: normal;
+    line-height: 1.8;
+    text-align: right;
+}
+
+.lastModified {
+    font-size: 50%;
+    padding: 0;
+    margin: 0;
+
+}
+
+.hidden {
+    display: none;
+}
+
+.© {
+    font-size: 70%;
+    margin-top: .5em;
+}
