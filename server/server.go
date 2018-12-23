@@ -87,8 +87,8 @@ func Create(opts Options) *Server {
 	for _, a := range s.httpsAddr {
 		s.servers = append(s.servers, &http.Server{
 			Addr:         a,
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			ReadTimeout:  15 * time.Second,
+			WriteTimeout: 60 * time.Second,
 			IdleTimeout:  120 * time.Second,
 			TLSConfig:    tlsConfig,
 			Handler:      handlers.CombinedLoggingHandler(os.Stdout, s.mux),
