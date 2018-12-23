@@ -4,7 +4,17 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+
+	"golang.org/x/oauth2"
 )
+
+// User holds details about an Eve user
+type User struct {
+	Token *oauth2.Token
+	Name  string
+	ID    int32
+	state string
+}
 
 // UserCache Holds a cache of users that can be written to disk
 type UserCache struct {
