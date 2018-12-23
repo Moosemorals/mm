@@ -1,3 +1,7 @@
+body {
+    font-family: Corbel, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", "Bitstream Vera Sans", "Liberation Sans", Verdana, "Verdana Ref", sans-serif;
+}
+
 .hidden {
     display: none;
 }
@@ -11,14 +15,26 @@
 
 #holder table {
 	border: none;
-    border-collapse: separate;
+    border-collapse: collapse;
+}
+
+#holder tbody tr {
+    border-left: thin solid black;
+    border-right: thin solid black;
+}
+
+#holder tbody tr:first-child {
+    border-top: thin solid black
+}
+
+#holder tbody tr:last-child {
+    border-bottom: thin solid black;
 }
 
 #holder th, #holder td {
-	border: 1px solid gray;
-	padding: 1px;
+	padding: 2px;
 }
 
-td.price {
+#holder td.price {
     text-align: end;
 }

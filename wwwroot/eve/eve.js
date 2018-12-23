@@ -1,3 +1,33 @@
+"use strict";
+
+window.Handler = (function () {
+
+    const handlers = {}
+
+    function _handler(type) {
+        return e => {
+            for (let s in handlers[type]) {
+                const target = e.target.closest(s)
+                if (target !== null) {
+                    handlers[type][s].apply(target, e)
+                }
+            }
+        }
+    }
+
+    function _add(type, selector, fn) {
+        if (!(type in handlers)) {
+            handlers[type] = {}
+            document.addEventListener(type, _handler(type))
+        }
+        handlers[type][selector] = fn
+    }
+
+    return {
+        on: _add
+    }
+
+})()
 
 function empty(el) {
     while (el.firstChild) {
@@ -11,7 +41,6 @@ function textNode(text) {
 }
 
 function appendChildren(el, ...content) {
-
     for (let i = 0; i < content.length; i += 1) {
         const x = content[i]
 
@@ -38,7 +67,7 @@ function buildElement(tag, options, ...content) {
     const el = document.createElement(tag)
 
     if (typeof options === "string") {
-        el.setAtttribute("class", options)
+        el.setAttribute("class", options)
     } else if (typeof options === "object") {
         for (let key in options) {
             if (options.hasOwnProperty(key) && options[key] !== undefined) {
@@ -50,12 +79,20 @@ function buildElement(tag, options, ...content) {
     return appendChildren(el, ...content)
 }
 
-function $(selector) {
-    return document.querySelector(selector)
+function $(a, b) {
+    if (b === undefined) {
+        b = a
+        a = document
+    }
+    return a.querySelector(b)
 }
 
-function $$(selector) {
-    return Array.from(document.querySelectorAll(selector))
+function $$(a, b) {
+    if (b === undefined) {
+        b = a
+        a = document
+    }
+    return Array.from(a.querySelectorAll(b))
 }
 
 function hide(el) {
@@ -104,7 +141,7 @@ function updateNames(names) {
 }
 
 function getPrivateNames(user, ids) {
-    apiPost(makeApiPath("/latest/characters/" + user.ID + "/assets/names/"), ids).then(json => {
+    return apiPost(makeApiPath("/latest/characters/" + user.ID + "/assets/names/"), ids).then(json => {
         const names = {}
         for (let i = 0; i < json.length; i += 1) {
             names[json[i].item_id] = json[i].name
@@ -114,7 +151,7 @@ function getPrivateNames(user, ids) {
 }
 
 function getPublicNames(ids) {
-    apiPost(makeApiPath("/latest/universe/names"), ids).then(json => {
+    return apiPost(makeApiPath("/latest/universe/names"), ids).then(json => {
         const names = {}
         for (let i = 0; i < json.length; i += 1) {
             names[json[i].id] = json[i].name
@@ -151,15 +188,85 @@ function getPrices() {
         })
 
     })
-
 }
 
 function formatPrice(price) {
     if (typeof price === "number") {
-        return price.toLocaleString()
+        return price.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ISK"
     }
     return "-"
 }
+
+function getText(el) {
+    if (el !== null && el !== undefined && el.firstChild !== null && el.firstChild.nodeType === Node.TEXT_NODE) {
+        return el.firstChild.nodeValue
+    }
+    return ""
+}
+
+window.SortAssets = (function () {
+
+    let dir , last
+
+    function _sortFunction(s, numeric) {
+        return function (a, b) {
+            let left = getText($(a, s))
+            let right = getText($(b, s))
+            if (numeric) {
+                left = parseFloat(left.replace(/[^0-9.-]/g, ""))
+                right = parseFloat(right.replace(/[^0-9.-]/g, ""))
+                if (isNaN(left) && isNaN(right)) {
+                    return 0
+                } else if (isNaN(left)) {
+                    return 1
+                } else if (isNaN(right)) {
+                    return -1
+                }
+            }
+
+            if (left < right) {
+                return dir ? -1 : 1
+            } else if (left > right) {
+                return dir ? 1 : -1
+            } else {
+                return 0
+            }
+        }
+    }
+
+    function _sort() {
+        const table = $("#holder table")
+        const chunks = []
+        $$(table, "tbody").forEach(b => {
+            chunks.push(b.parentNode.removeChild(b))
+        })
+
+        let selector, num
+        if ("dataset" in this) {
+            selector = this.dataset.sort
+            num = this.classList.contains("sort-number")
+        } else {
+            selector = ".name"
+            num = false
+        }
+
+        if (last === selector) {
+            dir = !dir
+        } else {
+            last = selector
+            dir = true
+        }
+
+        chunks.sort(_sortFunction(selector, num))
+
+        appendChildren(table, ...chunks)
+        show(table)
+    }
+
+    return {
+        sort: _sort
+    }
+})()
 
 function showAssetsByType(user, assets) {
     const types = {}
@@ -197,13 +304,24 @@ function showAssetsByType(user, assets) {
         toLookup.public[t] = true
     }
 
-    const tbody = buildElement("tbody")
+    const table = buildElement("table", "hidden",
+        buildElement("thead", undefined, buildElement("tr", undefined,
+            buildElement("th", { class: "sortable", "data-sort": ".name" }, "Type"),
+            buildElement("th", { class: "sortable sort-number", "data-sort": ".count" }, "Count"),
+            buildElement("th", { class: "sortable sort-number", "data-sort": ".avg" }, "Avg Price"),
+            buildElement("th", { class: "sortable sort-number", "data-sort": ".adj" }, "Adj Price"),
+            buildElement("th", { class: "sortable sort-number", "data-sort": ".val" }, "Value"),
+            buildElement("th", undefined, "Location"),
+            buildElement("th", undefined, "Count")
+        ))
+    )
 
     for (let id in types) {
+        const tbody = buildElement("tbody")
         const locCount = Object.keys(types[id].locations).length
         const firstRow = buildElement("tr", undefined,
-            buildElement("td", { rowspan: locCount }, buildElement("span", { "data-name-id": id })),
-            buildElement("td", { rowspan: locCount }, types[id].count),
+            buildElement("td", { rowspan: locCount }, buildElement("span", { class: "name", "data-name-id": id })),
+            buildElement("td", { rowspan: locCount, class: "count" }, types[id].count),
             buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "avg", "data-price-id": id })),
             buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "adj", "data-price-id": id })),
             buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "val", "data-price-id": id, "data-count": types[id].count }))
@@ -226,25 +344,18 @@ function showAssetsByType(user, assets) {
                 )
             }
         }
+        table.appendChild(tbody)
     }
 
-    $("#holder").appendChild(
-        buildElement("table", undefined,
-            buildElement("thead", undefined, buildElement("tr", undefined,
-                buildElement("th", undefined, "Type"),
-                buildElement("th", undefined, "Total"),
-                buildElement("th", { colspan: 2 }, "Price"),
-                buildElement("th", undefined, "Value"),
-                buildElement("th", undefined, "Location"),
-                buildElement("th", undefined, "Count")
-            )),
-            tbody
-        )
-    )
+    Handler.on("click", ".sortable", SortAssets.sort)
 
-    getPublicNames(Object.keys(toLookup.public))
-    getPrivateNames(user, Object.keys(toLookup.private).map(x => parseInt(x, 10)))
-    getPrices()
+    $("#holder").appendChild(table)
+
+    Promise.all([
+        getPublicNames(Object.keys(toLookup.public)),
+        getPrivateNames(user, Object.keys(toLookup.private).map(x => parseInt(x, 10))),
+        getPrices()
+    ]).then(() => SortAssets.sort())
 }
 
 function getAssets(user) {
