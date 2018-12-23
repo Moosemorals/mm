@@ -92,8 +92,6 @@ function makeApiPath(path) {
     return "/eveapi/api?p=" + encodeURIComponent(path)
 }
 
-
-
 function updateNames(names) {
     $$("[data-name-id]").forEach(x => {
         const id = x.dataset.nameId
@@ -125,45 +123,42 @@ function getPublicNames(ids) {
     })
 }
 
-function showAssetsRaw(user, assets) {
-    function _buildRow(asset) {
-        return buildElement("tr", undefined,
-            buildElement("td", undefined, buildElement("span", { "data-name-id": asset.location_id })),
-            buildElement("td", undefined, buildElement("span", { "data-name-id": asset.type_id })),
-            buildElement("td", undefined, asset.quantity)
-        )
-    }
-    const toLookup = {
-        public: {},
-        private: {}
-    }
-    const tbody = buildElement("tbody")
-
-    for (let i = 0; i < assets.length; i += 1) {
-        const row = assets[i]
-        if (row.location_type === "other") {
-            if (row.location_flag !== "Hangar") {
-                toLookup.private[row.location_id] = true
+function getPrices() {
+    return apiGet(makeApiPath("/latest/markets/prices")).then(json => {
+        const prices = {}
+        for (let i = 0; i < json.length; i += 1) {
+            prices[json[i].type_id] = {
+                avg: json[i].average_price,
+                adj: json[i].adjusted_price
             }
-        } else {
-            toLookup.public[row.location_id] = true
         }
-        toLookup.public[row.type_id] = true
-        tbody.appendChild(_buildRow(row))
+
+        $$("[data-price-id").forEach(x => {
+            const id = x.dataset.priceId
+            if (id in prices) {
+                let value = 0
+                if (x.classList.contains("avg")) {
+                    value = prices[id].avg
+                } else if (x.classList.contains("adj")) {
+                    value = prices[id].adj
+                } else if (x.classList.contains("val")) {
+                    const count = parseInt(x.dataset.count, 10)
+                    value = count * (prices[id].adj || prices[id].avg || 0)
+                }
+
+                empty(x).appendChild(textNode(formatPrice(value)))
+            }
+        })
+
+    })
+
+}
+
+function formatPrice(price) {
+    if (typeof price === "number") {
+        return price.toLocaleString()
     }
-
-    appendChildren($("#holder"), buildElement("table", undefined,
-        buildElement("thead", undefined, buildElement("tr", undefined,
-            buildElement("th", undefined, "Location"),
-            buildElement("th", undefined, "Type"),
-            buildElement("th", undefined, "Quantity")
-        )),
-        tbody
-    ))
-
-    getPublicNames(Object.keys(toLookup.public))
-    getPrivateNames(user, Object.keys(toLookup.private).map(x => parseInt(x, 10)))
-
+    return "-"
 }
 
 function showAssetsByType(user, assets) {
@@ -207,8 +202,11 @@ function showAssetsByType(user, assets) {
     for (let id in types) {
         const locCount = Object.keys(types[id].locations).length
         const firstRow = buildElement("tr", undefined,
-            buildElement("td", { rowspan: locCount  }, buildElement("span", { "data-name-id": id })),
-            buildElement("td", { rowspan: locCount  }, types[id].count)
+            buildElement("td", { rowspan: locCount }, buildElement("span", { "data-name-id": id })),
+            buildElement("td", { rowspan: locCount }, types[id].count),
+            buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "avg", "data-price-id": id })),
+            buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "adj", "data-price-id": id })),
+            buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "val", "data-price-id": id, "data-count": types[id].count }))
         )
         let first = true
         for (let loc in types[id].locations) {
@@ -235,6 +233,8 @@ function showAssetsByType(user, assets) {
             buildElement("thead", undefined, buildElement("tr", undefined,
                 buildElement("th", undefined, "Type"),
                 buildElement("th", undefined, "Total"),
+                buildElement("th", { colspan: 2 }, "Price"),
+                buildElement("th", undefined, "Value"),
                 buildElement("th", undefined, "Location"),
                 buildElement("th", undefined, "Count")
             )),
@@ -244,6 +244,7 @@ function showAssetsByType(user, assets) {
 
     getPublicNames(Object.keys(toLookup.public))
     getPrivateNames(user, Object.keys(toLookup.private).map(x => parseInt(x, 10)))
+    getPrices()
 }
 
 function getAssets(user) {
