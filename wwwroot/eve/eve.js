@@ -125,8 +125,16 @@ function apiGet(target) {
 
 }
 
+function staticGet(target) {
+    return fetch(target).then(r => r.json())
+}
+
 function makeApiPath(path) {
     return "/eveapi/api?p=" + encodeURIComponent(path)
+}
+
+function makeStaticPath(path) {
+    return "/eve/data" + path
 }
 
 function updateNames(names) {
@@ -150,11 +158,11 @@ function getPrivateNames(user, ids) {
     })
 }
 
-function getPublicNames(ids) {
-    return apiPost(makeApiPath("/latest/universe/names"), ids).then(json => {
+function getPublicNames() {
+    return staticGet(makeStaticPath("/bsd/invNames.json")).then(json => {
         const names = {}
         for (let i = 0; i < json.length; i += 1) {
-            names[json[i].id] = json[i].name
+            names[json[i].itemID] = json[i].itemName
         }
         updateNames(names)
     })
@@ -271,7 +279,6 @@ window.SortAssets = (function () {
 function showAssetsByType(user, assets) {
     const types = {}
     const toLookup = {
-        public: {},
         private: {}
     }
 
@@ -298,10 +305,7 @@ function showAssetsByType(user, assets) {
             if (row.location_flag !== "Hangar") {
                 toLookup.private[row.location_id] = true
             }
-        } else {
-            toLookup.public[row.location_id] = true
         }
-        toLookup.public[t] = true
     }
 
     const table = buildElement("table", "hidden",
@@ -352,7 +356,7 @@ function showAssetsByType(user, assets) {
     $("#holder").appendChild(table)
 
     Promise.all([
-        getPublicNames(Object.keys(toLookup.public)),
+        getPublicNames(),
         getPrivateNames(user, Object.keys(toLookup.private).map(x => parseInt(x, 10))),
         getPrices()
     ]).then(() => SortAssets.sort())
