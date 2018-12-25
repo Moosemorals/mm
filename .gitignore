@@ -4,6 +4,7 @@
 /eveAPI/config.json
 /main/tls
 /main/users
+/main/cache
 
 ## Bulk data
 /wwwroot/eve/data

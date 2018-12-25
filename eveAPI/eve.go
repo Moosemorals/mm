@@ -23,10 +23,11 @@ var interestingHeaders = []string{"Content-Type", "Content-Length", "Cache-Contr
 
 // Eve holds state for the Eve API
 type Eve struct {
-	conf  Config
-	oauth *oauth2.Config
-	users *UserCache
-	types eveTypes
+	conf     Config
+	oauth    *oauth2.Config
+	users    *UserCache
+	apiCache *apiCache
+	types    eveTypes
 }
 
 // Config holds configuration details
@@ -64,7 +65,7 @@ func getAPIPath(path string) string {
 
 func (e *Eve) apiGet(u *User, path string) (*http.Response, error) {
 	log.Printf("EVE API GET %s", path)
-	return e.makeClient(u).Get(getAPIPath(path))
+	return e.apiCache.get(e.makeClient(u), getAPIPath(path))
 }
 
 func (e *Eve) apiPost(u *User, path string, body io.ReadCloser) (*http.Response, error) {
@@ -83,6 +84,8 @@ func NewEve() *Eve {
 	if err := e.loadStatic(); err != nil {
 		log.Fatal("Can't load eve static data")
 	}
+
+	e.apiCache = newAPICache()
 
 	e.oauth = &oauth2.Config{
 		ClientID:     e.conf.ClientID,
@@ -213,14 +216,14 @@ func (e *Eve) handleAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := r.URL.Query()
+	param := r.URL.Query()
 
-	target := query.Get("p")
+	target := param.Get("p")
 	if len(target) == 0 {
 		writeError(w, 400, "Missing path", nil)
 		return
 	}
-	method := query.Get("m")
+	method := param.Get("m")
 
 	var resp *http.Response
 	if len(method) == 0 || method == "GET" {
