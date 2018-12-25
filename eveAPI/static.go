@@ -3,8 +3,10 @@ package eveapi
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func getTypes() (eveTypes, error) {
@@ -186,4 +188,85 @@ func setTypeMaterials(types eveTypes) error {
 
 	}
 	return nil
+}
+
+func (e *Eve) loadStatic() error {
+	types, err := getTypes()
+	if err != nil {
+		return err
+	}
+
+	e.types = types
+
+	if err := setTypeMaterials(e.types); err != nil {
+		return err
+	}
+
+	return nil
+}
+func simpleTypeFromType(t *EveType) simpleType {
+	return simpleType{
+		Name:        t.Name["en"],
+		Description: t.Description["en"],
+		Materials:   t.Materials,
+	}
+
+}
+func (e *Eve) handleStatic(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != "POST" {
+		writeError(w, 405, "Method not allowed", nil)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, 400, "Bad form data", err)
+		return
+	}
+
+	rawIds := r.PostForm.Get("ids")
+
+	if len(rawIds) == 0 {
+		writeError(w, 400, "Missing id list", nil)
+		return
+	}
+
+	ids := strings.Split(rawIds, ",")
+
+	result := make(map[int32]simpleType)
+
+	mats := make(map[int32]bool)
+
+	for _, i := range ids {
+		rawID, err := strconv.Atoi(i)
+		if err != nil {
+			writeError(w, 400, "Bad id", err)
+			return
+		}
+
+		id := int32(rawID)
+
+		t, ok := e.types[id]
+		if ok {
+			result[id] = simpleTypeFromType(t)
+			for _, m := range t.Materials {
+				mats[m.ID] = true
+			}
+		}
+	}
+
+	for matID := range mats {
+		_, ok := result[matID]
+		if !ok {
+			t, ok2 := e.types[matID]
+			if ok2 {
+				result[matID] = simpleTypeFromType(t)
+			}
+		}
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	json.NewEncoder(w).Encode(result)
 }

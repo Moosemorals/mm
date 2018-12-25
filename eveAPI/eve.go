@@ -26,6 +26,7 @@ type Eve struct {
 	conf  Config
 	oauth *oauth2.Config
 	users *UserCache
+	types eveTypes
 }
 
 // Config holds configuration details
@@ -50,7 +51,11 @@ func writeError(w http.ResponseWriter, status int, msg string, err error) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status)
 
-	fmt.Fprintf(w, "%s\n%v", msg, err)
+	if err != nil {
+		fmt.Fprintf(w, "%s\n%v", msg, err)
+	} else {
+		fmt.Fprintf(w, "%s", msg)
+	}
 }
 
 func getAPIPath(path string) string {
@@ -74,6 +79,11 @@ func NewEve() *Eve {
 	if err != nil {
 		log.Fatal("Can't read eve config:", err)
 	}
+
+	if err := e.loadStatic(); err != nil {
+		log.Fatal("Can't load eve static data")
+	}
+
 	e.oauth = &oauth2.Config{
 		ClientID:     e.conf.ClientID,
 		ClientSecret: e.conf.Secret,
@@ -243,6 +253,9 @@ func (e *Eve) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else if strings.HasPrefix(r.URL.Path, "/eveapi/api") {
 		log.Print("EVE: Handing to API")
 		e.handleAPI(w, r)
+	} else if strings.HasPrefix(r.URL.Path, "/eveapi/static") {
+		log.Print("EVE: Handing to Static")
+		e.handleStatic(w, r)
 	} else {
 		log.Print("EVE: Sending user data")
 		e.handleLogin(w, r)

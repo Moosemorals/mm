@@ -105,22 +105,22 @@ function show(el) {
 
 function apiPost(target, body) {
     return fetch(target + "&m=POST", {
-        method: "POST",
-        credentials: "same-origin",
-        redirect: "follow",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-    })
+            method: "POST",
+            credentials: "same-origin",
+            redirect: "follow",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        })
         .then(r => r.json())
 }
 
 function apiGet(target) {
     return fetch(target, {
-        credentials: "same-origin",
-        redirect: "follow"
-    })
+            credentials: "same-origin",
+            redirect: "follow"
+        })
         .then(r => r.json())
 
 }
@@ -129,12 +129,40 @@ function staticGet(target) {
     return fetch(target).then(r => r.json())
 }
 
+function staticPost(target, body) {
+    return fetch(target, {
+        method: "POST",
+        body: body,
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+    }).then(r => r.json())
+}
+
+function makeParam(param) {
+    let result = ""
+
+    for (let key in param) {
+        if (param.hasOwnProperty(key)) {
+            if (result !== "") {
+                result += "&"
+            }
+            result += encodeURIComponent(key)
+            if (param[key] !== undefined) {
+                result += "=" + encodeURIComponent(param[key])
+            }
+        }
+    }
+
+    return result
+}
+
 function makeApiPath(path) {
     return "/eveapi/api?p=" + encodeURIComponent(path)
 }
 
 function makeStaticPath(path) {
-    return "/eve/data" + path
+    return "/eveapi/static" + path
 }
 
 function updateNames(names) {
@@ -158,14 +186,10 @@ function getPrivateNames(user, ids) {
     })
 }
 
-function getPublicNames() {
-    return staticGet(makeStaticPath("/bsd/invNames.json")).then(json => {
-        const names = {}
-        for (let i = 0; i < json.length; i += 1) {
-            names[json[i].itemID] = json[i].itemName
-        }
-        updateNames(names)
-    })
+function getTypes(types) {
+    return staticPost(makeStaticPath(""), makeParam({
+        ids: types.join(",")
+    }))
 }
 
 function getPrices() {
@@ -177,30 +201,16 @@ function getPrices() {
                 adj: json[i].adjusted_price
             }
         }
-
-        $$("[data-price-id").forEach(x => {
-            const id = x.dataset.priceId
-            if (id in prices) {
-                let value = 0
-                if (x.classList.contains("avg")) {
-                    value = prices[id].avg
-                } else if (x.classList.contains("adj")) {
-                    value = prices[id].adj
-                } else if (x.classList.contains("val")) {
-                    const count = parseInt(x.dataset.count, 10)
-                    value = count * (prices[id].adj || prices[id].avg || 0)
-                }
-
-                empty(x).appendChild(textNode(formatPrice(value)))
-            }
-        })
-
+        return prices
     })
 }
 
 function formatPrice(price) {
     if (typeof price === "number") {
-        return price.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ISK"
+        return price.toLocaleString("en-GB", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + " ISK"
     }
     return "-"
 }
@@ -214,7 +224,7 @@ function getText(el) {
 
 window.SortAssets = (function () {
 
-    let dir , last
+    let dir, last
 
     function _sortFunction(s, numeric) {
         return function (a, b) {
@@ -276,6 +286,126 @@ window.SortAssets = (function () {
     }
 })()
 
+function buildMaterialsTable(types, materials) {
+    const row = buildElement("tr", undefined,
+        buildElement("th", undefined, "Type"),
+        buildElement("th", undefined, "Quantity"),
+        buildElement("th", undefined, "Avg Market Price"),
+        buildElement("th", undefined, "Adj Market Price"),
+        buildElement("th", undefined, "Recyled Price")
+    )
+
+    for (let i = 0; i < materials.length; i += 1) {
+        const id = materials[i]
+        row.appendChild(
+            buildElement("th", undefined, types[id].name)
+        )
+    }
+
+    return buildElement("table", undefined,
+        buildElement("colgroup", undefined,
+            buildElement("col", {
+                span: 1,
+                class: "col-name"
+            }),
+            buildElement("col", {
+                span: 1,
+                class: "col-number"
+            }),
+            buildElement("col", {
+                span: 3,
+                class: "col-currency"
+            }),
+            buildElement("col", {
+                span: materials.length,
+                class: "col-mats"
+            })
+        ),
+        buildElement("thead", undefined, row)
+    )
+}
+
+function buildMaterialsRow(materials, t) {
+    const row = buildElement("tr", undefined,
+        buildElement("td", undefined, t.name),
+        buildElement("td", undefined, t.held),
+        buildElement("td", undefined, formatPrice(t.avg)),
+        buildElement("td", undefined, formatPrice(t.adj)),
+        buildElement("td", undefined, formatPrice(t.matPrice))
+
+    )
+
+    return row
+}
+
+
+function showMaterials(user, assets) {
+    const quants = {}
+    for (let i = 0; i < assets.length; i += 1) {
+        const asset = assets[i]
+        const t = asset.type_id
+        if (!(t in quants)) {
+            quants[t] = 0
+        }
+        quants[t] += asset.quantity
+    }
+
+    Promise.all([
+        getTypes(Object.keys(quants)),
+        getPrices()
+    ]).then(results => {
+        const types = results[0]
+        const prices = results[1]
+        const materials = {}
+        const result = {}
+        for (let id in quants) {
+            if (!(id in types)) {
+                continue
+            }
+            const t = types[id]
+            const p = prices[id]
+
+            result[id] = {
+                name: t.name,
+                desc: t.desc,
+                held: quants[id]
+            }
+
+            if (id in prices) {
+                result[id].adj = prices[id].adj
+                result[id].avg = prices[id].avg
+            }
+
+            if (t.mats !== null) {
+                result[id].mats = t.mats
+                result[id].matPrice = 0
+                for (let i = 0; i < t.mats.length; i += 1) {
+                    const mat = t.mats[i];
+                    materials[mat.id] = true
+                    if (mat.id in prices) {
+                        result[id].matPrice += mat.v * (prices[mat.id].adj || prices[mat.id].avg || 0)
+                    } else {
+                        delete result[id].matPrice
+                        break
+                    }
+                }
+            }
+        }
+        const matList = Object.keys(materials)
+
+        const table = buildMaterialsTable(types, matList)
+        const tbody = buildElement("tbody")
+        for (let id in result) {
+            tbody.appendChild(buildMaterialsRow(matList, result[id]))
+        }
+
+        table.appendChild(tbody)
+
+        $("#holder").appendChild(table)
+    })
+}
+
+
 function showAssetsByType(user, assets) {
     const types = {}
     const toLookup = {
@@ -310,11 +440,26 @@ function showAssetsByType(user, assets) {
 
     const table = buildElement("table", "hidden",
         buildElement("thead", undefined, buildElement("tr", undefined,
-            buildElement("th", { class: "sortable", "data-sort": ".name" }, "Type"),
-            buildElement("th", { class: "sortable sort-number", "data-sort": ".count" }, "Count"),
-            buildElement("th", { class: "sortable sort-number", "data-sort": ".avg" }, "Avg Price"),
-            buildElement("th", { class: "sortable sort-number", "data-sort": ".adj" }, "Adj Price"),
-            buildElement("th", { class: "sortable sort-number", "data-sort": ".val" }, "Value"),
+            buildElement("th", {
+                class: "sortable",
+                "data-sort": ".name"
+            }, "Type"),
+            buildElement("th", {
+                class: "sortable sort-number",
+                "data-sort": ".count"
+            }, "Count"),
+            buildElement("th", {
+                class: "sortable sort-number",
+                "data-sort": ".avg"
+            }, "Avg Price"),
+            buildElement("th", {
+                class: "sortable sort-number",
+                "data-sort": ".adj"
+            }, "Adj Price"),
+            buildElement("th", {
+                class: "sortable sort-number",
+                "data-sort": ".val"
+            }, "Value"),
             buildElement("th", undefined, "Location"),
             buildElement("th", undefined, "Count")
         ))
@@ -324,17 +469,46 @@ function showAssetsByType(user, assets) {
         const tbody = buildElement("tbody")
         const locCount = Object.keys(types[id].locations).length
         const firstRow = buildElement("tr", undefined,
-            buildElement("td", { rowspan: locCount }, buildElement("span", { class: "name", "data-name-id": id })),
-            buildElement("td", { rowspan: locCount, class: "count" }, types[id].count),
-            buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "avg", "data-price-id": id })),
-            buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "adj", "data-price-id": id })),
-            buildElement("td", { rowspan: locCount, class: "price" }, buildElement("span", { class: "val", "data-price-id": id, "data-count": types[id].count }))
+            buildElement("td", {
+                rowspan: locCount
+            }, buildElement("span", {
+                class: "name",
+                "data-name-id": id
+            })),
+            buildElement("td", {
+                rowspan: locCount,
+                class: "count"
+            }, types[id].count),
+            buildElement("td", {
+                rowspan: locCount,
+                class: "price"
+            }, buildElement("span", {
+                class: "avg",
+                "data-price-id": id
+            })),
+            buildElement("td", {
+                rowspan: locCount,
+                class: "price"
+            }, buildElement("span", {
+                class: "adj",
+                "data-price-id": id
+            })),
+            buildElement("td", {
+                rowspan: locCount,
+                class: "price"
+            }, buildElement("span", {
+                class: "val",
+                "data-price-id": id,
+                "data-count": types[id].count
+            }))
         )
         let first = true
         for (let loc in types[id].locations) {
             if (first) {
                 appendChildren(firstRow,
-                    buildElement("td", undefined, buildElement("span", { "data-name-id": loc })),
+                    buildElement("td", undefined, buildElement("span", {
+                        "data-name-id": loc
+                    })),
                     buildElement("td", undefined, types[id].locations[loc])
                 )
                 tbody.appendChild(firstRow)
@@ -342,7 +516,9 @@ function showAssetsByType(user, assets) {
             } else {
                 tbody.appendChild(
                     buildElement("tr", undefined,
-                        buildElement("td", undefined, buildElement("span", { "data-name-id": loc })),
+                        buildElement("td", undefined, buildElement("span", {
+                            "data-name-id": loc
+                        })),
                         buildElement("td", undefined, types[id].locations[loc])
                     )
                 )
@@ -356,14 +532,14 @@ function showAssetsByType(user, assets) {
     $("#holder").appendChild(table)
 
     Promise.all([
-        getPublicNames(),
+        getTypes(Object.keys(types)),
         getPrivateNames(user, Object.keys(toLookup.private).map(x => parseInt(x, 10))),
         getPrices()
     ]).then(() => SortAssets.sort())
 }
 
 function getAssets(user) {
-    apiGet(makeApiPath("/latest/characters/" + user.ID + "/assets/")).then(json => showAssetsByType(user, json))
+    apiGet(makeApiPath("/latest/characters/" + user.ID + "/assets/")).then(json => showMaterials(user, json))
 }
 
 function init() {

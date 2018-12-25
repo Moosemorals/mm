@@ -61,3 +61,9 @@ type EveAttribute struct {
 }
 
 type eveAttributes map[int32]*EveAttribute
+
+type simpleType struct {
+	Name        string      `json:"name"`
+	Description string      `json:"desc"`
+	Materials   []TypeValue `json:"mats"`
+}
