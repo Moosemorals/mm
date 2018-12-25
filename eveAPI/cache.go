@@ -1,24 +1,29 @@
 package eveapi
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/base64"
-	"io"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 const cacheBase = "cache/"
 
 type cacheEntry struct {
-	target     string
-	headers    http.Header
-	status     string
-	statusCode int
-	proto      string
-	protoMajor int
-	protoMinor int
+	responseTime time.Time
+	maxAge       time.Duration
+}
+
+func (e *cacheEntry) fresh() bool {
+	return time.Since(e.responseTime) < e.maxAge
+}
+
+func (e *cacheEntry) tilStale() time.Duration {
+	return time.Duration(e.maxAge - time.Since(e.responseTime))
 }
 
 type apiCache struct {
@@ -41,15 +46,28 @@ func cachePath(target string) string {
 	return cacheBase + stringHash(target)
 }
 
+func calcMaxAge(resp *http.Response) time.Duration {
+	date, err := http.ParseTime(resp.Header.Get("Date"))
+	if err != nil {
+		return time.Duration(0)
+	}
+
+	expires, err := http.ParseTime(resp.Header.Get("Expires"))
+	if err != nil {
+		return time.Duration(0)
+	}
+
+	return expires.Sub(date)
+}
+
 func (c *apiCache) put(target string, resp *http.Response) (*cacheEntry, error) {
 	e := &cacheEntry{
-		target:     target,
-		headers:    resp.Header,
-		status:     resp.Status,
-		statusCode: resp.StatusCode,
-		proto:      resp.Proto,
-		protoMajor: resp.ProtoMajor,
-		protoMinor: resp.ProtoMinor,
+		responseTime: time.Now(),
+		maxAge:       calcMaxAge(resp),
+	}
+
+	if !e.fresh() {
+		return nil, errors.New("Already stale")
 	}
 
 	path := cachePath(target)
@@ -60,7 +78,8 @@ func (c *apiCache) put(target string, resp *http.Response) (*cacheEntry, error) 
 	}
 
 	defer resp.Body.Close()
-	if _, err := io.Copy(out, resp.Body); err != nil {
+
+	if err := resp.Write(out); err != nil {
 		return nil, err
 	}
 
@@ -76,32 +95,25 @@ func constructResponse(target string, entry *cacheEntry) (*http.Response, error)
 		return nil, err
 	}
 
-	return &http.Response{
-		Header:     entry.headers,
-		Status:     entry.status,
-		StatusCode: entry.statusCode,
-		Proto:      entry.proto,
-		ProtoMajor: entry.protoMajor,
-		ProtoMinor: entry.protoMinor,
-		Body:       body,
-	}, nil
+	return http.ReadResponse(bufio.NewReader(body), nil)
 }
 
 func (c *apiCache) get(client *http.Client, target string) (*http.Response, error) {
 	entry, ok := c.store[target]
-	if !ok {
+	if !ok || !entry.fresh() {
+
 		resp, err := client.Get(target)
 		if err != nil {
 			return resp, err
 		}
 		entry, err = c.put(target, resp)
 		if err != nil {
-			log.Print("WARN: Couldn't store to cache", err)
+			log.Print("WARN: Couldn't store to cache: ", err)
 			return resp, nil
 		}
 	}
 
-	log.Printf("Serving %s from cache", target)
+	log.Printf("Serving %s from cache (%s left)", target, entry.tilStale())
 	return constructResponse(target, entry)
 
 }
