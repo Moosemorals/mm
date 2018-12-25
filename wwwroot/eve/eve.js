@@ -325,16 +325,29 @@ function buildMaterialsTable(types, materials) {
     )
 }
 
-function buildMaterialsRow(materials, t) {
+function buildMaterialsRow(knownMaterials, t) {
     const row = buildElement("tr", undefined,
         buildElement("td", undefined, t.name),
         buildElement("td", undefined, t.held),
         buildElement("td", undefined, formatPrice(t.avg)),
         buildElement("td", undefined, formatPrice(t.adj)),
         buildElement("td", undefined, formatPrice(t.matPrice))
-
     )
 
+    const usedMaterials = {}
+    for (let i = 0; i < t.mats.length; i += 1) {
+        const mat = t.mats[i]
+        usedMaterials[mat.id] = buildElement("td", undefined, mat.v)
+    }
+
+    for (let i = 0; i < knownMaterials.length; i += 1) {
+        const mat = knownMaterials[i]
+        if (mat in usedMaterials) {
+            row.appendChild(usedMaterials[mat])
+        } else {
+            row.appendChild(buildElement("td", undefined, "-"))
+        }
+    }
     return row
 }
 
@@ -389,9 +402,11 @@ function showMaterials(user, assets) {
                         break
                     }
                 }
+            } else {
+                result[id].mats = []
             }
         }
-        const matList = Object.keys(materials)
+        const matList = Object.keys(materials).map(x => parseInt(x, 10))
 
         const table = buildMaterialsTable(types, matList)
         const tbody = buildElement("tbody")
