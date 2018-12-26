@@ -14,7 +14,7 @@ body {
 }
 
 #holder table {
-	border: none;
+    border: none;
     border-collapse: collapse;
 }
 
@@ -31,10 +31,28 @@ body {
     border-bottom: thin solid black;
 }
 
-#holder th, #holder td {
-	padding: 2px;
+#holder th,
+#holder td {
+    padding: 2px;
 }
 
 #holder td.price {
     text-align: end;
+}
+
+.price-over {
+    background-color: #98FB98
+}
+
+col {
+    border: thin solid black;
+}
+
+.col-currency,
+.col-number {
+    text-align: right;
+}
+
+.col-mats {
+    text-align: center;
 }

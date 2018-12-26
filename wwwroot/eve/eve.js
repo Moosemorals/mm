@@ -187,7 +187,7 @@ function getPrivateNames(user, ids) {
 }
 
 function getTypes(types) {
-    return staticPost(makeStaticPath(""), makeParam({
+    return staticPost(makeStaticPath("/typesById"), makeParam({
         ids: types.join(",")
     }))
 }
@@ -326,7 +326,15 @@ function buildMaterialsTable(types, materials) {
 }
 
 function buildMaterialsRow(knownMaterials, t) {
-    const row = buildElement("tr", undefined,
+    let c
+    if (t.matPrice > t.avg) {
+        c = "price-over"
+    } else if (t.matPrice < t.avg) {
+        c = "price-under"
+    } else {
+        c = "price-even"
+    }
+    const row = buildElement("tr", c,
         buildElement("td", undefined, t.name),
         buildElement("td", undefined, t.held),
         buildElement("td", undefined, formatPrice(t.avg)),
@@ -337,7 +345,7 @@ function buildMaterialsRow(knownMaterials, t) {
     const usedMaterials = {}
     for (let i = 0; i < t.mats.length; i += 1) {
         const mat = t.mats[i]
-        usedMaterials[mat.id] = buildElement("td", undefined, mat.v)
+        usedMaterials[mat.typeID] = buildElement("td", undefined, mat.quantity)
     }
 
     for (let i = 0; i < knownMaterials.length; i += 1) {
@@ -349,6 +357,48 @@ function buildMaterialsRow(knownMaterials, t) {
         }
     }
     return row
+}
+
+
+function showBlueprints(types) {
+    const mineralIds = [34, 35, 36, 37, 38, 39, 40]
+    const minerals = {}
+    mineralIds.forEach(id => minerals[id] = true)
+    const result = {}
+
+    outer:
+        for (let id in types) {
+            const t = types[id]
+
+            if (!("bps" in t) || t.bps.length === 0 || !("manufacturing" in t.bps[0].activities)) {
+                continue
+            }
+
+            const mats = t.bps[0].activities.manufacturing.materials
+
+            for (let i = 0; i < mats.length; i += 1) {
+                if (!(mats[i].typeID in minerals)) {
+                    continue outer
+                }
+            }
+
+            result[id] = {
+                name: t.name,
+                desc: t.desc,
+                mats: t.bps[0].activities.manufacturing.materials
+            }
+        }
+
+    const table = buildMaterialsTable(types, mineralIds)
+    const tbody = buildElement("tbody")
+    for (let id in result) {
+        tbody.appendChild(buildMaterialsRow(mineralIds, result[id]))
+    }
+
+    table.appendChild(tbody)
+
+    $("#holder").appendChild(table)
+    show($("#holder"))
 }
 
 
@@ -558,16 +608,22 @@ function getAssets(user) {
 }
 
 function init() {
-    apiGet("/eveapi/").then(json => {
-        if ("Name" in json) {
-            hide($("#register"))
-            show($("#holder"))
-            appendChildren(empty($("#holder")), "Hello ", json.Name)
-            getAssets(json)
-        } else if ("AuthURL" in json) {
-            $("#authURL").setAttribute("href", json.AuthURL)
-        }
-    })
+    if (window.location.pathname.indexOf("index") !== -1) {
+        apiGet("/eveapi/").then(json => {
+            if ("Name" in json) {
+                hide($("#register"))
+                show($("#holder"))
+                appendChildren(empty($("#holder")), "Hello ", json.Name)
+                getAssets(json)
+            } else if ("AuthURL" in json) {
+                $("#authURL").setAttribute("href", json.AuthURL)
+            }
+        })
+    } else {
+        staticGet(makeStaticPath("/buildables")).then(json => {
+            showBlueprints(json)
+        })
+    }
 }
 
 window.addEventListener("DOMContentLoaded", init)

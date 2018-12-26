@@ -42,6 +42,7 @@ type EveType struct {
 	FactionID     int32             `json:"factionID"`
 	Attributes    []TypeAttr        `json:"attributes"`
 	Materials     []TypeValue       `json:"materials"`
+	Blueprints    []*EveBlueprint   `json:"blueprints"`
 }
 
 type eveTypes map[int32]*EveType
@@ -63,7 +64,46 @@ type EveAttribute struct {
 type eveAttributes map[int32]*EveAttribute
 
 type simpleType struct {
-	Name        string      `json:"name"`
-	Description string      `json:"desc"`
-	Materials   []TypeValue `json:"mats"`
+	Name        string          `json:"name"`
+	Description string          `json:"desc"`
+	PortionSize int32           `json:"portionSize"`
+	CategoryID  int32           `json:"catID,omitempty"`
+	Materials   []TypeValue     `json:"mats,omitempty"`
+	Blueprints  []*EveBlueprint `json:"bps,omitempty"`
 }
+
+// EveTypeQuant holds a type/quantity pair
+type EveTypeQuant struct {
+	Quantity int64 `json:"quantity"`
+	TypeID   int32 `json:"typeID"`
+}
+
+// EveSkill holds a skill type/level pair
+type EveSkill struct {
+	Level  int32 `json:"level"`
+	TypeID int32 `json:"typeID"`
+}
+
+// EveBlueprintActivity holds deatils about making stuff from a blueprint
+type EveBlueprintActivity struct {
+	Materials []EveTypeQuant `json:"materials,omitempty"`
+	Products  []EveTypeQuant `json:"products,omitempty"`
+	Skills    []EveSkill     `json:"skills,omitempty"`
+	Time      int32          `json:"time"`
+}
+
+// EveBlueprint is the details of how to build stuff
+type EveBlueprint struct {
+	Activities         map[string]EveBlueprintActivity `json:"activities"`
+	MaxProductionLimit int32                           `json:"maxProductionLimit"`
+	ID                 int32                           `json:"blueprintTypeID"`
+}
+
+type eveBlueprints map[int32]*EveBlueprint
+
+// EveGroup maps items to categories
+type EveGroup struct {
+	CategoryID int32 `json:"categoryID"`
+}
+
+type eveGroups map[int32]EveGroup

@@ -23,11 +23,14 @@ var interestingHeaders = []string{"Content-Type", "Content-Length", "Cache-Contr
 
 // Eve holds state for the Eve API
 type Eve struct {
-	conf     Config
-	oauth    *oauth2.Config
-	users    *UserCache
-	apiCache *apiCache
-	types    eveTypes
+	conf       Config
+	oauth      *oauth2.Config
+	users      *UserCache
+	apiCache   *apiCache
+	types      eveTypes
+	attributes eveAttributes
+	blueprints eveBlueprints
+	groups     eveGroups
 }
 
 // Config holds configuration details
